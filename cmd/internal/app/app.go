@@ -11,7 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type AppSpecificConfig any
+//type AppSpecificConfig any
 
 type ContentConfig struct {
 	// AcceptContentTypes specifies the types client will accept and is optional. If not set, ContentType will be used to define the Accept header
@@ -34,43 +34,6 @@ type RestConfig struct {
 	// sent to the server.
 	ContentConfig
 }
-
-type AppConfig struct {
-	// KubeConfig is a kubernetes rest.Config used to communicate with the API server where the App's Kinds are stored.
-	KubeConfig RestConfig
-	// // ManifestData is the fetched ManifestData the runner is using for determining app kinds and capabilities.
-	// ManifestData ManifestData
-	// SpecificConfig is app-specific config (as opposed to generic config)
-	AppSpecificConfig AppSpecificConfig
-}
-
-type AppProvider interface {
-	AppSpecificConfig() AppSpecificConfig
-	NewApp(AppConfig) (App, error)
-}
-
-var _ AppProvider = &SimpleAppProvider{}
-
-func NewSimpleAppProvider(cfg AppSpecificConfig, newAppFunc func(cfg AppConfig) (App, error)) *SimpleAppProvider {
-	return &SimpleAppProvider{
-		SpecificConfig: cfg,
-		NewAppFunc:     newAppFunc,
-	}
-}
-
-type SimpleAppProvider struct {
-	SpecificConfig AppSpecificConfig
-	NewAppFunc     func(config AppConfig) (App, error)
-}
-
-func (p *SimpleAppProvider) AppSpecificConfig() AppSpecificConfig {
-	return p.AppSpecificConfig
-}
-
-func (p *SimpleAppProvider) NewApp(settings AppConfig) (App, error) {
-	return p.NewAppFunc(settings)
-}
-
 type App interface {
 	// // Validate validates the incoming request, and returns an error if validation fails
 	// Validate(ctx context.Context, request *AdmissionRequest) error
@@ -170,6 +133,10 @@ type SimpleApp struct {
 
 func (a *SimpleApp) Runner() Runnable {
 	return a.runner
+}
+
+func (a *SimpleApp) AddRunnable(runner Runnable) {
+	a.runner.AddRunnable(runner)
 }
 
 func (a *SimpleApp) PrometheusCollectors() []prometheus.Collector {

@@ -3,11 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/app"
-	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/operator"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
+	"time"
+
+	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/app"
+	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/operator"
 )
 
 func main() {
@@ -27,24 +30,58 @@ func main() {
 
 	log.Print("\u001B[1;32mStarting App\u001B[0m")
 
-	appCfg := struct {
-		Name string
-		Type string
-	}{
-		Name: "Sammy",
-		Type: "Shark",
+	app, err := NewTestApp()
+	if err != nil {
+		panic(fmt.Errorf("unable to create app: %w", err))
 	}
 
-	err = runner.Run(ctx, app.NewSimpleAppProvider(appCfg, NewApp))
+	err = runner.Run(ctx, app)
 	if err != nil {
 		panic(fmt.Errorf("error running operator: %w", err))
 	}
 }
 
-func NewApp(config app.AppConfig) (app.App, error) {
+type testApp struct {
+	port       int
+	KubeConfig app.RestConfig
+}
 
-	return app.NewSimpleApp(app.SimpleAppConfig{
+func (t *testApp) Run(ctx context.Context) error {
+	mux := http.NewServeMux()
+	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "main-handler: %s\n", r.URL.Query().Get("name"))
+	}))
+	server := &http.Server{
+		Addr:              fmt.Sprintf(":%d", t.port),
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- server.ListenAndServe()
+	}()
+	select {
+	case err := <-errCh:
+		return err
+	case <-ctx.Done():
+	}
+	return nil
+}
+
+func NewTestApp() (app.App, error) {
+
+	testApp := &testApp{
+		port:       9991,
+		KubeConfig: app.RestConfig{},
+	}
+
+	app, err := app.NewSimpleApp(app.SimpleAppConfig{
 		Name:       "simple-reconciler-app",
-		KubeConfig: config.KubeConfig,
+		KubeConfig: testApp.KubeConfig,
 	})
+	if err != nil {
+		return app, err
+	}
+	app.AddRunnable(testApp)
+	return app, err
 }
