@@ -17,8 +17,8 @@ type AppRunnerConfig struct {
 
 type appRunner struct {
 	apps     []App
-	exitWait *time.Duration
-	mu       sync.Mutex // Mutex to protect the apps slice
+	exitWait *time.Duration // Maximum duration to wait for apps to stop
+	mu       sync.Mutex     // Mutex to protect the apps slice
 }
 
 func NewAppRunner(mainApp App, config AppRunnerConfig) *appRunner {
@@ -43,7 +43,7 @@ func (ar *appRunner) Run(ctx context.Context) error {
 	defer ar.mu.Unlock()
 
 	var wg sync.WaitGroup
-	errChan := make(chan error, len(ar.apps)) // Buffered channel to collect errors
+	errChan := make(chan error, len(ar.apps))
 
 	// Start all apps
 	for _, app := range ar.apps {
@@ -51,7 +51,7 @@ func (ar *appRunner) Run(ctx context.Context) error {
 		go func(a App) {
 			defer wg.Done()
 			if err := a.Run(ctx); err != nil {
-				errChan <- fmt.Errorf("app failed: %w", err)
+				errChan <- fmt.Errorf("error starting app: %w", err)
 			}
 		}(app)
 	}
@@ -61,27 +61,29 @@ func (ar *appRunner) Run(ctx context.Context) error {
 	case <-ctx.Done():
 		// Context was canceled or timed out
 		log.Println("Context canceled, stopping apps")
-		if err := ar.stopApps(ctx); err != nil {
+		if err := ar.stopApps(); err != nil {
 			return fmt.Errorf("failed to stop apps: %w", err)
 		}
-		return ctx.Err()
+		return nil
 	case err := <-errChan:
 		// An app failed, stop all apps
 		log.Println("App failed, stopping all apps")
-		if stopErr := ar.stopApps(ctx); stopErr != nil {
+		if stopErr := ar.stopApps(); stopErr != nil {
 			return errors.Join(err, fmt.Errorf("failed to stop apps: %w", stopErr))
 		}
 		return err
 	}
 }
 
-func (ar *appRunner) stopApps(ctx context.Context) error {
-	// Create a context with the ExitWait timeout
+func (ar *appRunner) stopApps() error {
+	var stopCtx context.Context
 	var cancel context.CancelFunc
 	if ar.exitWait != nil {
-		ctx, cancel = context.WithTimeout(ctx, *ar.exitWait)
-		defer cancel()
+		stopCtx, cancel = context.WithTimeout(context.Background(), *ar.exitWait)
+	} else {
+		stopCtx, cancel = context.WithCancel(context.Background())
 	}
+	defer cancel()
 
 	// Stop all apps
 	var err error
@@ -90,7 +92,7 @@ func (ar *appRunner) stopApps(ctx context.Context) error {
 		wg.Add(1)
 		go func(a App) {
 			defer wg.Done()
-			if stopErr := a.Stop(ctx); stopErr != nil {
+			if stopErr := a.Stop(stopCtx); stopErr != nil {
 				err = errors.Join(err, fmt.Errorf("app stop error: %w", stopErr))
 			}
 		}(app)
@@ -107,8 +109,8 @@ func (ar *appRunner) stopApps(ctx context.Context) error {
 	case <-done:
 		// All apps stopped
 		return err
-	case <-ctx.Done():
+	case <-stopCtx.Done():
 		// ExitWait timeout exceeded
-		return fmt.Errorf("stopping apps exceeded ExitWait duration: %w", ctx.Err())
+		return fmt.Errorf("stopping apps exceeded ExitWait duration: %w", stopCtx.Err())
 	}
 }
