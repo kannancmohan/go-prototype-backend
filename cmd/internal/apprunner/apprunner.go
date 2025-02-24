@@ -10,31 +10,38 @@ import (
 )
 
 type AppRunnerConfig struct {
-	EnableMetricsService bool // Whether to enable the metrics service
-	EnableAdditionalApps bool // Whether to enable an additional sidecar
-	AdditionalApps       []App
-	ExitWait             *time.Duration // Maximum duration to wait for apps to stop
+	AdditionalApps      []App                  // Additional apps to run
+	ExitWait            *time.Duration         // Maximum duration to wait for apps to stop
+	MetricsServerConfig MetricsServerAppConfig // Configuration for the metrics server
 }
 
 type appRunner struct {
 	apps     []App
-	ExitWait *time.Duration // Maximum duration to wait for apps to stop
+	exitWait *time.Duration
+	mu       sync.Mutex // Mutex to protect the apps slice
 }
 
-func NewAppRunner(mainApp App, config AppRunnerConfig, sidecars ...App) *appRunner {
-	apps := append([]App{mainApp}, config.AdditionalApps...)
-	if config.EnableMetricsService {
-		apps = append(apps, newMetricsServerApp(MetricsServerAppConfig{}))
+func NewAppRunner(mainApp App, config AppRunnerConfig) *appRunner {
+	apps := []App{mainApp}
+
+	if config.MetricsServerConfig.Enabled {
+		apps = append(apps, newMetricsServerApp(config.MetricsServerConfig))
 	}
+
+	if len(config.AdditionalApps) > 0 {
+		apps = append(apps, config.AdditionalApps...)
+	}
+
 	return &appRunner{
 		apps:     apps,
-		ExitWait: config.ExitWait,
+		exitWait: config.ExitWait,
 	}
-
 }
 
-// Run starts all apps concurrently and handles errors and rollback.
 func (ar *appRunner) Run(ctx context.Context) error {
+	ar.mu.Lock()
+	defer ar.mu.Unlock()
+
 	var wg sync.WaitGroup
 	errChan := make(chan error, len(ar.apps)) // Buffered channel to collect errors
 
@@ -43,7 +50,6 @@ func (ar *appRunner) Run(ctx context.Context) error {
 		wg.Add(1)
 		go func(a App) {
 			defer wg.Done()
-
 			if err := a.Run(ctx); err != nil {
 				errChan <- fmt.Errorf("app failed: %w", err)
 			}
@@ -69,12 +75,11 @@ func (ar *appRunner) Run(ctx context.Context) error {
 	}
 }
 
-// stopApps stops all apps gracefully within the ExitWait duration.
 func (ar *appRunner) stopApps(ctx context.Context) error {
 	// Create a context with the ExitWait timeout
 	var cancel context.CancelFunc
-	if ar.ExitWait != nil {
-		ctx, cancel = context.WithTimeout(ctx, *ar.ExitWait)
+	if ar.exitWait != nil {
+		ctx, cancel = context.WithTimeout(ctx, *ar.exitWait)
 		defer cancel()
 	}
 

@@ -17,12 +17,13 @@ type App interface {
 	Stop(ctx context.Context) error
 }
 
-// Implementation of metrics sidecar app
 type MetricsServerAppConfig struct {
-	Registerer prometheus.Registerer
-	Gatherer   prometheus.Gatherer
-	Port       int
-	Path       string
+	Enabled         bool
+	Registerer      prometheus.Registerer
+	Gatherer        prometheus.Gatherer
+	Port            int
+	Path            string
+	ShutdownTimeout time.Duration // Timeout for graceful shutdown
 }
 
 func newMetricsServerApp(cfg MetricsServerAppConfig) *MetricsServerApp {
@@ -38,33 +39,32 @@ func newMetricsServerApp(cfg MetricsServerAppConfig) *MetricsServerApp {
 	if cfg.Path == "" {
 		cfg.Path = "/metrics"
 	}
+	if cfg.ShutdownTimeout == 0 {
+		cfg.ShutdownTimeout = 5 * time.Second
+	}
 	return &MetricsServerApp{
-		Registerer: cfg.Registerer,
-		Gatherer:   cfg.Gatherer,
-		Port:       cfg.Port,
-		Path:       cfg.Path,
+		Registerer:      cfg.Registerer,
+		Gatherer:        cfg.Gatherer,
+		Port:            cfg.Port,
+		Path:            cfg.Path,
+		shutdownTimeout: cfg.ShutdownTimeout,
 	}
 }
 
-var _ App = &MetricsServerApp{}
-
-// MetricsServerApp exports prometheus metrics
 type MetricsServerApp struct {
-	Registerer prometheus.Registerer
-	Gatherer   prometheus.Gatherer
-	Port       int
-	Path       string
-	server     *http.Server
-	mu         sync.Mutex // Mutex to protect the server field
+	Registerer      prometheus.Registerer
+	Gatherer        prometheus.Gatherer
+	Port            int
+	Path            string
+	shutdownTimeout time.Duration
+	server          *http.Server
+	mu              sync.Mutex
 }
 
-// RegisterCollectors registers the provided collectors with the Exporter's Registerer.
-// If there is an error registering any of the provided collectors, registration is halted and an error is returned.
 func (e *MetricsServerApp) RegisterCollectors(metrics ...prometheus.Collector) error {
 	for _, m := range metrics {
-		err := e.Registerer.Register(m)
-		if err != nil {
-			return err
+		if err := e.Registerer.Register(m); err != nil {
+			return fmt.Errorf("failed to register collector: %w", err)
 		}
 	}
 	return nil
@@ -74,7 +74,6 @@ func (e *MetricsServerApp) Run(ctx context.Context) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	// Create a new HTTP server
 	mux := http.NewServeMux()
 	mux.Handle(e.Path, promhttp.InstrumentMetricHandler(
 		e.Registerer, promhttp.HandlerFor(e.Gatherer, promhttp.HandlerOpts{}),
@@ -86,7 +85,6 @@ func (e *MetricsServerApp) Run(ctx context.Context) error {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	// Start the server in a goroutine
 	errCh := make(chan error, 1)
 	go func() {
 		log.Printf("Metrics server started on port %d at path %s", e.Port, e.Path)
@@ -95,15 +93,12 @@ func (e *MetricsServerApp) Run(ctx context.Context) error {
 		}
 	}()
 
-	// Wait for the server to start or for the context to be canceled
 	select {
 	case err := <-errCh:
 		return err
 	case <-ctx.Done():
-		// Context was canceled, stop the server
-		stopCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		stopCtx, cancel := context.WithTimeout(context.Background(), e.shutdownTimeout)
 		defer cancel()
-
 		if err := e.server.Shutdown(stopCtx); err != nil {
 			return fmt.Errorf("metrics server shutdown failed: %w", err)
 		}
@@ -120,7 +115,7 @@ func (e *MetricsServerApp) Stop(ctx context.Context) error {
 	}
 
 	log.Println("Stopping metrics server gracefully")
-	shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second) // Allow 5 seconds for graceful shutdown
+	shutdownCtx, cancel := context.WithTimeout(ctx, e.shutdownTimeout)
 	defer cancel()
 
 	if err := e.server.Shutdown(shutdownCtx); err != nil {
