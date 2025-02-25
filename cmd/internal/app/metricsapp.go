@@ -1,4 +1,4 @@
-package apprunner
+package app
 
 import (
 	"context"
@@ -12,11 +12,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-type App interface {
-	Run(ctx context.Context) error
-	Stop(ctx context.Context) error
-}
-
 type MetricsServerAppConfig struct {
 	Enabled         bool
 	Registerer      prometheus.Registerer
@@ -26,7 +21,7 @@ type MetricsServerAppConfig struct {
 	ShutdownTimeout time.Duration // Timeout for graceful shutdown
 }
 
-func newMetricsServerApp(cfg MetricsServerAppConfig) *MetricsServerApp {
+func NewMetricsServerApp(cfg MetricsServerAppConfig) *MetricsServerApp {
 	if cfg.Registerer == nil {
 		cfg.Registerer = prometheus.DefaultRegisterer
 	}
@@ -89,7 +84,7 @@ func (e *MetricsServerApp) Run(ctx context.Context) error {
 
 	errCh := make(chan error, 1)
 	go func() {
-		slog.Info(fmt.Sprintf("Metrics server started on port %d at path %s", e.Port, e.Path))
+		slog.Info(fmt.Sprintf("metrics server started on port %d at path %s", e.Port, e.Path))
 		if err := e.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errCh <- fmt.Errorf("metrics server failed: %w", err)
 		}
@@ -116,13 +111,13 @@ func (e *MetricsServerApp) Stop(ctx context.Context) error {
 		return nil // Server was never started
 	}
 
-	slog.Debug("Stopping metrics server gracefully")
+	slog.Debug("stopping metrics server gracefully")
 	shutdownCtx, cancel := context.WithTimeout(ctx, e.shutdownTimeout)
 	defer cancel()
 
 	if err := e.server.Shutdown(shutdownCtx); err != nil {
 		return fmt.Errorf("failed to stop metrics server: %w", err)
 	}
-	slog.Info("Metrics server stopped")
+	slog.Info("metrics server stopped")
 	return nil
 }

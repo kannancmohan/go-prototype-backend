@@ -7,25 +7,29 @@ import (
 	"log/slog"
 	"sync"
 	"time"
+
+	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/app"
 )
 
 type AppRunnerConfig struct {
-	AdditionalApps      []App                  // Additional apps to run
-	ExitWait            time.Duration          // Maximum duration to wait for apps to stop. (Need to set a value greater than 0 to take effect)
-	MetricsServerConfig MetricsServerAppConfig // Configuration for the metrics server
+	AdditionalApps      []app.App                  // Additional apps to run
+	ExitWait            time.Duration              // Maximum duration to wait for apps to stop. (Need to set a value greater than 0 to take effect)
+	MetricsServerConfig app.MetricsServerAppConfig // Configuration for the metrics server
 }
 
 type appRunner struct {
-	apps     []App
+	apps     []app.App
 	exitWait time.Duration // Maximum duration to wait for apps to stop
 	mu       sync.Mutex    // Mutex to protect the apps slice
 }
 
-func NewAppRunner(mainApp App, config AppRunnerConfig) *appRunner {
-	apps := []App{mainApp}
+func NewAppRunner(mainApp app.App, config AppRunnerConfig) *appRunner {
+	apps := []app.App{mainApp}
 
 	if config.MetricsServerConfig.Enabled {
-		apps = append(apps, newMetricsServerApp(config.MetricsServerConfig))
+		metricsApp := app.NewMetricsServerApp(config.MetricsServerConfig)
+		metricsApp.RegisterCollectors()
+		apps = append(apps, metricsApp)
 	}
 
 	if len(config.AdditionalApps) > 0 {
@@ -46,14 +50,14 @@ func (ar *appRunner) Run(ctx context.Context) error {
 	errChan := make(chan error, len(ar.apps))
 
 	// Start all apps
-	for _, app := range ar.apps {
+	for _, ap := range ar.apps {
 		wg.Add(1)
-		go func(a App) {
+		go func(a app.App) {
 			defer wg.Done()
 			if err := a.Run(ctx); err != nil {
 				errChan <- fmt.Errorf("error starting app: %w", err)
 			}
-		}(app)
+		}(ap)
 	}
 
 	// Wait for an app to fail or context cancellation
@@ -85,14 +89,14 @@ func (ar *appRunner) stopApps() error {
 
 	var err error
 	var wg sync.WaitGroup
-	for _, app := range ar.apps {
+	for _, ap := range ar.apps {
 		wg.Add(1)
-		go func(a App) {
+		go func(a app.App) {
 			defer wg.Done()
 			if stopErr := a.Stop(stopCtx); stopErr != nil {
 				err = errors.Join(err, fmt.Errorf("app stop error: %w", stopErr))
 			}
-		}(app)
+		}(ap)
 	}
 
 	done := make(chan struct{})

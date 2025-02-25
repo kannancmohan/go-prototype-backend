@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/app"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/apprunner"
 )
 
@@ -45,7 +46,7 @@ func TestAppRunner_Run(t *testing.T) {
 				},
 			},
 			config: apprunner.AppRunnerConfig{
-				MetricsServerConfig: apprunner.MetricsServerAppConfig{
+				MetricsServerConfig: app.MetricsServerAppConfig{
 					Enabled: false,
 				},
 				ExitWait: 5 * time.Second,
@@ -64,7 +65,7 @@ func TestAppRunner_Run(t *testing.T) {
 				},
 			},
 			config: apprunner.AppRunnerConfig{
-				MetricsServerConfig: apprunner.MetricsServerAppConfig{
+				MetricsServerConfig: app.MetricsServerAppConfig{
 					Enabled: false,
 				},
 				ExitWait: 5 * time.Second,
@@ -85,7 +86,7 @@ func TestAppRunner_Run(t *testing.T) {
 				},
 			},
 			config: apprunner.AppRunnerConfig{
-				MetricsServerConfig: apprunner.MetricsServerAppConfig{
+				MetricsServerConfig: app.MetricsServerAppConfig{
 					Enabled:         true,
 					Port:            9090,
 					Path:            "/metrics",
@@ -108,10 +109,10 @@ func TestAppRunner_Run(t *testing.T) {
 				},
 			},
 			config: apprunner.AppRunnerConfig{
-				MetricsServerConfig: apprunner.MetricsServerAppConfig{
+				MetricsServerConfig: app.MetricsServerAppConfig{
 					Enabled: false,
 				},
-				AdditionalApps: []apprunner.App{
+				AdditionalApps: []app.App{
 					&MockApp{
 						RunFunc: func(ctx context.Context) error {
 							<-ctx.Done()
