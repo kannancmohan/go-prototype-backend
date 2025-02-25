@@ -26,14 +26,19 @@ type appRunner struct {
 func NewAppRunner(mainApp app.App, config AppRunnerConfig) *appRunner {
 	apps := []app.App{mainApp}
 
-	if config.MetricsServerConfig.Enabled {
-		metricsApp := app.NewMetricsServerApp(config.MetricsServerConfig)
-		metricsApp.RegisterCollectors()
-		apps = append(apps, metricsApp)
-	}
-
 	if len(config.AdditionalApps) > 0 {
 		apps = append(apps, config.AdditionalApps...)
+	}
+
+	if config.MetricsServerConfig.Enabled {
+		metricsApp := app.NewMetricsServerApp(config.MetricsServerConfig)
+		for _, ap := range apps {
+			if provider, ok := ap.(app.MetricsProvider); ok {
+				collectors := provider.PrometheusCollectors()
+				metricsApp.RegisterCollectors(collectors...)
+			}
+		}
+		apps = append(apps, metricsApp)
 	}
 
 	return &appRunner{

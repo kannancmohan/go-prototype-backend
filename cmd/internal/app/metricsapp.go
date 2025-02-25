@@ -59,6 +59,9 @@ type MetricsServerApp struct {
 }
 
 func (e *MetricsServerApp) RegisterCollectors(metrics ...prometheus.Collector) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
 	for _, m := range metrics {
 		if err := e.Registerer.Register(m); err != nil {
 			return fmt.Errorf("failed to register collector: %w", err)
