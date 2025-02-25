@@ -51,6 +51,8 @@ func newMetricsServerApp(cfg MetricsServerAppConfig) *MetricsServerApp {
 	}
 }
 
+var _ App = &MetricsServerApp{}
+
 type MetricsServerApp struct {
 	Registerer      prometheus.Registerer
 	Gatherer        prometheus.Gatherer

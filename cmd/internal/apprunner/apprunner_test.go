@@ -1,12 +1,13 @@
-package apprunner
+package apprunner_test
 
 import (
 	"context"
 	"errors"
 	"strings"
-	"sync"
 	"testing"
 	"time"
+
+	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/apprunner"
 )
 
 // MockApp is a mock implementation of the App interface for testing.
@@ -24,168 +25,129 @@ func (m *MockApp) Stop(ctx context.Context) error {
 }
 
 func TestAppRunner_Run(t *testing.T) {
-	t.Run("Successful Run", func(t *testing.T) {
-		app := &MockApp{
-			RunFunc: func(ctx context.Context) error {
-				<-ctx.Done()
-				return nil
+	tests := []struct {
+		name        string
+		mainApp     *MockApp
+		config      apprunner.AppRunnerConfig
+		ctxTimeout  time.Duration
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name: "Successful Run",
+			mainApp: &MockApp{
+				RunFunc: func(ctx context.Context) error {
+					<-ctx.Done()
+					return nil
+				},
+				StopFunc: func(ctx context.Context) error {
+					return nil
+				},
 			},
-			StopFunc: func(ctx context.Context) error {
-				return nil
+			config: apprunner.AppRunnerConfig{
+				MetricsServerConfig: apprunner.MetricsServerAppConfig{
+					Enabled: false,
+				},
+				ExitWait: 5 * time.Second,
 			},
-		}
-
-		config := AppRunnerConfig{
-			MetricsServerConfig: MetricsServerAppConfig{
-				Enabled: false,
+			ctxTimeout:  1 * time.Second,
+			expectError: false,
+		},
+		{
+			name: "App Failure",
+			mainApp: &MockApp{
+				RunFunc: func(ctx context.Context) error {
+					return errors.New("mock app failed")
+				},
+				StopFunc: func(ctx context.Context) error {
+					return nil
+				},
 			},
-			ExitWait: ptrDuration(5 * time.Second),
-		}
-
-		runner := NewAppRunner(app, config)
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-		defer cancel()
-
-		err := runner.Run(ctx)
-		if err != nil {
-			t.Errorf("Expected no error, got: %v", err)
-		}
-	})
-
-	t.Run("App Failure", func(t *testing.T) {
-		app := &MockApp{
-			RunFunc: func(ctx context.Context) error {
-				return errors.New("mock app failed")
+			config: apprunner.AppRunnerConfig{
+				MetricsServerConfig: apprunner.MetricsServerAppConfig{
+					Enabled: false,
+				},
+				ExitWait: 5 * time.Second,
 			},
-			StopFunc: func(ctx context.Context) error {
-				return nil
+			ctxTimeout:  1 * time.Second,
+			expectError: true,
+			errorMsg:    "mock app failed",
+		},
+		{
+			name: "Metrics Server Enabled",
+			mainApp: &MockApp{
+				RunFunc: func(ctx context.Context) error {
+					<-ctx.Done()
+					return nil
+				},
+				StopFunc: func(ctx context.Context) error {
+					return nil
+				},
 			},
-		}
-
-		config := AppRunnerConfig{
-			MetricsServerConfig: MetricsServerAppConfig{
-				Enabled: false,
+			config: apprunner.AppRunnerConfig{
+				MetricsServerConfig: apprunner.MetricsServerAppConfig{
+					Enabled:         true,
+					Port:            9090,
+					Path:            "/metrics",
+					ShutdownTimeout: 1 * time.Second,
+				},
+				ExitWait: 5 * time.Second,
 			},
-			ExitWait: ptrDuration(5 * time.Second),
-		}
-
-		runner := NewAppRunner(app, config)
-		ctx := context.Background()
-
-		err := runner.Run(ctx)
-		if err == nil {
-			t.Error("Expected an error, got nil")
-		} else if !strings.Contains(err.Error(), "mock app failed") {
-			t.Errorf("Expected error 'app failed', got: %v", err)
-		}
-	})
-
-	t.Run("Metrics Server Enabled", func(t *testing.T) {
-		app := &MockApp{
-			RunFunc: func(ctx context.Context) error {
-				<-ctx.Done()
-				return nil
+			ctxTimeout:  1 * time.Second,
+			expectError: false,
+		},
+		{
+			name: "Additional Apps",
+			mainApp: &MockApp{
+				RunFunc: func(ctx context.Context) error {
+					<-ctx.Done()
+					return nil
+				},
+				StopFunc: func(ctx context.Context) error {
+					return nil
+				},
 			},
-			StopFunc: func(ctx context.Context) error {
-				return nil
+			config: apprunner.AppRunnerConfig{
+				MetricsServerConfig: apprunner.MetricsServerAppConfig{
+					Enabled: false,
+				},
+				AdditionalApps: []apprunner.App{
+					&MockApp{
+						RunFunc: func(ctx context.Context) error {
+							<-ctx.Done()
+							return nil
+						},
+						StopFunc: func(ctx context.Context) error {
+							return nil
+						},
+					},
+				},
+				ExitWait: 5 * time.Second,
 			},
-		}
+			ctxTimeout:  1 * time.Second,
+			expectError: false,
+		},
+	}
 
-		config := AppRunnerConfig{
-			MetricsServerConfig: MetricsServerAppConfig{
-				Enabled:         true,
-				Port:            9090,
-				Path:            "/metrics",
-				ShutdownTimeout: 1 * time.Second,
-			},
-			ExitWait: ptrDuration(5 * time.Second),
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			runner := apprunner.NewAppRunner(tt.mainApp, tt.config)
+			ctx, cancel := context.WithTimeout(context.Background(), tt.ctxTimeout)
+			defer cancel()
 
-		runner := NewAppRunner(app, config)
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-		defer cancel()
-
-		err := runner.Run(ctx)
-		if err != nil {
-			t.Errorf("Expected no error, got: %v", err)
-		}
-	})
-
-	t.Run("Additional Apps", func(t *testing.T) {
-		app := &MockApp{
-			RunFunc: func(ctx context.Context) error {
-				<-ctx.Done()
-				return nil
-			},
-			StopFunc: func(ctx context.Context) error {
-				return nil
-			},
-		}
-
-		additionalApp := &MockApp{
-			RunFunc: func(ctx context.Context) error {
-				<-ctx.Done()
-				return nil
-			},
-			StopFunc: func(ctx context.Context) error {
-				return nil
-			},
-		}
-
-		config := AppRunnerConfig{
-			MetricsServerConfig: MetricsServerAppConfig{
-				Enabled: false,
-			},
-			AdditionalApps: []App{additionalApp},
-			ExitWait:       ptrDuration(5 * time.Second),
-		}
-
-		runner := NewAppRunner(app, config)
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-		defer cancel()
-
-		err := runner.Run(ctx)
-		if err != nil {
-			t.Errorf("Expected no error, got: %v", err)
-		}
-	})
-
-	t.Run("Concurrent Run and Stop", func(t *testing.T) {
-		app := &MockApp{
-			RunFunc: func(ctx context.Context) error {
-				<-ctx.Done()
-				return nil
-			},
-			StopFunc: func(ctx context.Context) error {
-				return nil
-			},
-		}
-
-		config := AppRunnerConfig{
-			MetricsServerConfig: MetricsServerAppConfig{
-				Enabled: false,
-			},
-			ExitWait: ptrDuration(5 * time.Second),
-		}
-
-		runner := NewAppRunner(app, config)
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-		defer cancel()
-
-		var wg sync.WaitGroup
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
 			err := runner.Run(ctx)
-			if err != nil {
-				t.Errorf("Expected no error, got: %v", err)
+			if tt.expectError {
+				if err == nil {
+					t.Error("Expected an error, got nil")
+				} else if !strings.Contains(err.Error(), tt.errorMsg) {
+					t.Errorf("Expected error '%s', got: %v", tt.errorMsg, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error, got: %v", err)
+				}
 			}
-		}()
 
-		wg.Wait()
-	})
-}
-
-func ptrDuration(d time.Duration) *time.Duration {
-	return &d
+		})
+	}
 }

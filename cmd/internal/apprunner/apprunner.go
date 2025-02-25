@@ -11,14 +11,14 @@ import (
 
 type AppRunnerConfig struct {
 	AdditionalApps      []App                  // Additional apps to run
-	ExitWait            *time.Duration         // Maximum duration to wait for apps to stop
+	ExitWait            time.Duration          // Maximum duration to wait for apps to stop. (Need to set a value greater than 0 to take effect)
 	MetricsServerConfig MetricsServerAppConfig // Configuration for the metrics server
 }
 
 type appRunner struct {
 	apps     []App
-	exitWait *time.Duration // Maximum duration to wait for apps to stop
-	mu       sync.Mutex     // Mutex to protect the apps slice
+	exitWait time.Duration // Maximum duration to wait for apps to stop
+	mu       sync.Mutex    // Mutex to protect the apps slice
 }
 
 func NewAppRunner(mainApp App, config AppRunnerConfig) *appRunner {
@@ -78,8 +78,8 @@ func (ar *appRunner) Run(ctx context.Context) error {
 func (ar *appRunner) stopApps() error {
 	var stopCtx context.Context
 	var cancel context.CancelFunc
-	if ar.exitWait != nil {
-		stopCtx, cancel = context.WithTimeout(context.Background(), *ar.exitWait)
+	if ar.exitWait > 0 {
+		stopCtx, cancel = context.WithTimeout(context.Background(), ar.exitWait)
 	} else {
 		stopCtx, cancel = context.WithCancel(context.Background())
 	}
