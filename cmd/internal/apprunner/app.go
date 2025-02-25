@@ -3,7 +3,7 @@ package apprunner
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
@@ -89,7 +89,7 @@ func (e *MetricsServerApp) Run(ctx context.Context) error {
 
 	errCh := make(chan error, 1)
 	go func() {
-		log.Printf("Metrics server started on port %d at path %s", e.Port, e.Path)
+		slog.Info(fmt.Sprintf("Metrics server started on port %d at path %s", e.Port, e.Path))
 		if err := e.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errCh <- fmt.Errorf("metrics server failed: %w", err)
 		}
@@ -116,14 +116,13 @@ func (e *MetricsServerApp) Stop(ctx context.Context) error {
 		return nil // Server was never started
 	}
 
-	log.Println("Stopping metrics server gracefully")
+	slog.Debug("Stopping metrics server gracefully")
 	shutdownCtx, cancel := context.WithTimeout(ctx, e.shutdownTimeout)
 	defer cancel()
 
 	if err := e.server.Shutdown(shutdownCtx); err != nil {
 		return fmt.Errorf("failed to stop metrics server: %w", err)
 	}
-
-	log.Println("Metrics server stopped")
+	slog.Info("Metrics server stopped")
 	return nil
 }

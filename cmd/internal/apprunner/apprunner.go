@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"sync"
 	"time"
 )
@@ -59,15 +59,13 @@ func (ar *appRunner) Run(ctx context.Context) error {
 	// Wait for an app to fail or context cancellation
 	select {
 	case <-ctx.Done():
-		// Context was canceled or timed out
-		log.Println("Context canceled, stopping apps")
+		slog.Info("Context canceled, stopping apps")
 		if err := ar.stopApps(); err != nil {
 			return fmt.Errorf("failed to stop apps: %w", err)
 		}
 		return nil
 	case err := <-errChan:
-		// An app failed, stop all apps
-		log.Println("App failed, stopping all apps")
+		slog.Info("App failed, stopping all apps")
 		if stopErr := ar.stopApps(); stopErr != nil {
 			return errors.Join(err, fmt.Errorf("failed to stop apps: %w", stopErr))
 		}
@@ -85,7 +83,6 @@ func (ar *appRunner) stopApps() error {
 	}
 	defer cancel()
 
-	// Stop all apps
 	var err error
 	var wg sync.WaitGroup
 	for _, app := range ar.apps {
@@ -98,19 +95,17 @@ func (ar *appRunner) stopApps() error {
 		}(app)
 	}
 
-	// Wait for all apps to stop or for the ExitWait timeout
 	done := make(chan struct{})
 	go func() {
 		wg.Wait()
 		close(done)
 	}()
 
+	// Wait for all apps to stop or for the ExitWait timeout
 	select {
-	case <-done:
-		// All apps stopped
+	case <-done: // All apps stopped
 		return err
-	case <-stopCtx.Done():
-		// ExitWait timeout exceeded
+	case <-stopCtx.Done(): // ExitWait timeout exceeded
 		return fmt.Errorf("stopping apps exceeded ExitWait duration: %w", stopCtx.Err())
 	}
 }
