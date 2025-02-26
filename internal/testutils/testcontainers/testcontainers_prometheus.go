@@ -11,7 +11,7 @@ import (
 
 const (
 	prometheusImage       = "prom/prometheus:v3.1.0"
-	prometheusExposedPort = "9090"
+	PrometheusExposedPort = "9090"
 )
 
 type testPrometheusContainer struct {
@@ -32,8 +32,8 @@ func (p *testPrometheusContainer) CreatePrometheusTestContainer(metricsAppAddr s
 	ctr, err := testcontainers.GenericContainer(timeoutCtx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
 			Image:        prometheusImage,
-			ExposedPorts: []string{fmt.Sprintf("%s/tcp", prometheusExposedPort)},
-			WaitingFor:   wait.ForHTTP("/").WithPort(prometheusExposedPort + "/tcp"),
+			ExposedPorts: []string{fmt.Sprintf("%s/tcp", PrometheusExposedPort)},
+			WaitingFor:   wait.ForHTTP("/").WithPort(PrometheusExposedPort + "/tcp"),
 			LifecycleHooks: []testcontainers.ContainerLifecycleHooks{
 				{
 					PreStarts: []testcontainers.ContainerHook{

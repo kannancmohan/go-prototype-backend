@@ -15,11 +15,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const (
-	prometheusImage       = "prom/prometheus:v3.1.0"
-	prometheusExposedPort = "9090"
-)
-
 func TestAppRunnerMetricsIntegration(t *testing.T) {
 	appHost, err := testutils.GetLocalIP()
 	if err != nil {
@@ -45,7 +40,7 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get prometheus container host: %v", err)
 	}
-	prometheusPort, err := promContainer.MappedPort(ctx, prometheusExposedPort)
+	prometheusPort, err := promContainer.MappedPort(ctx, tc_testutils.PrometheusExposedPort)
 	if err != nil {
 		t.Fatalf("failed to get prometheus container port: %v", err)
 	}
