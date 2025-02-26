@@ -69,20 +69,20 @@ func (ar *appRunner) Run(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		slog.Info("Context canceled, stopping apps")
-		if err := ar.stopApps(); err != nil {
+		if err := ar.StopApps(); err != nil {
 			return fmt.Errorf("failed to stop apps: %w", err)
 		}
 		return nil
 	case err := <-errChan:
 		slog.Info("App failed, stopping all apps")
-		if stopErr := ar.stopApps(); stopErr != nil {
+		if stopErr := ar.StopApps(); stopErr != nil {
 			return errors.Join(err, fmt.Errorf("failed to stop apps: %w", stopErr))
 		}
 		return err
 	}
 }
 
-func (ar *appRunner) stopApps() error {
+func (ar *appRunner) StopApps() error {
 	var stopCtx context.Context
 	var cancel context.CancelFunc
 	if ar.exitWait > 0 {

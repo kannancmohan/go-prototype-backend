@@ -50,25 +50,6 @@ type testApp struct {
 	mu              sync.Mutex
 }
 
-func (t *testApp) Stop(ctx context.Context) error {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	if t.server == nil {
-		return nil // Server was never started
-	}
-
-	slog.Debug("stopping test server gracefully")
-	shutdownCtx, cancel := context.WithTimeout(ctx, t.shutdownTimeout)
-	defer cancel()
-
-	if err := t.server.Shutdown(shutdownCtx); err != nil {
-		return fmt.Errorf("failed to stop test server: %w", err)
-	}
-	slog.Info("test server stopped")
-	return nil
-}
-
 func (t *testApp) Run(ctx context.Context) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -95,5 +76,24 @@ func (t *testApp) Run(ctx context.Context) error {
 	case <-ctx.Done():
 		//TODO check whether we need to close the server . check how metrics server is stopped
 	}
+	return nil
+}
+
+func (t *testApp) Stop(ctx context.Context) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if t.server == nil {
+		return nil // Server was never started
+	}
+
+	slog.Debug("stopping test server gracefully")
+	shutdownCtx, cancel := context.WithTimeout(ctx, t.shutdownTimeout)
+	defer cancel()
+
+	if err := t.server.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("failed to stop test server: %w", err)
+	}
+	slog.Info("test server stopped")
 	return nil
 }
