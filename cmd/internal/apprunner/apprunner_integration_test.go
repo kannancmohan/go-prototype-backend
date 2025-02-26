@@ -11,9 +11,8 @@ import (
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/app"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/apprunner"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/testutils"
+	tc_testutils "github.com/kannancmohan/go-prototype-backend-apps-temp/internal/testutils/testcontainers"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 const (
@@ -34,39 +33,19 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 
 	appPort := ports[0]
 	metricsAppPort := ports[1]
-	metricsAppAddr := fmt.Sprintf("%s:%d", appHost, metricsAppPort)
 	ctx := context.Background()
-	prometheus, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        prometheusImage,
-			ExposedPorts: []string{fmt.Sprintf("%s/tcp", prometheusExposedPort)},
-			WaitingFor:   wait.ForHTTP("/").WithPort(prometheusExposedPort + "/tcp"),
-			LifecycleHooks: []testcontainers.ContainerLifecycleHooks{
-				{
-					PreStarts: []testcontainers.ContainerHook{
-						func(ctx context.Context, c testcontainers.Container) error {
-							err := c.CopyToContainer(ctx, getPrometheusConfig(metricsAppAddr), "/etc/prometheus/prometheus.yml", 0o755)
-							if err != nil {
-								return fmt.Errorf("failed to copy script to container: %w", err)
-							}
-							return nil
-						},
-					},
-				},
-			},
-		},
-		Started: true,
-	})
+
+	promContainer, cleanupFunc, err := tc_testutils.NewPrometheusContainer().CreatePrometheusTestContainer(fmt.Sprintf("%s:%d", appHost, metricsAppPort))
 	if err != nil {
 		t.Fatalf("failed to create prometheus container : %v", err)
 	}
-	defer prometheus.Terminate(ctx)
+	defer cleanupFunc(ctx)
 
-	prometheusHost, err := prometheus.Host(ctx)
+	prometheusHost, err := promContainer.Host(ctx)
 	if err != nil {
 		t.Fatalf("failed to get prometheus container host: %v", err)
 	}
-	prometheusPort, err := prometheus.MappedPort(ctx, prometheusExposedPort)
+	prometheusPort, err := promContainer.MappedPort(ctx, prometheusExposedPort)
 	if err != nil {
 		t.Fatalf("failed to get prometheus container port: %v", err)
 	}
@@ -175,16 +154,4 @@ func (e *exampleApp) Stop(ctx context.Context) error {
 
 func (e *exampleApp) PrometheusCollectors() []prometheus.Collector {
 	return []prometheus.Collector{e.requestCounter}
-}
-
-func getPrometheusConfig(appHost string) []byte {
-	config := `global:
-  scrape_interval: 1s
-
-scrape_configs:
-  - job_name: "prometheus"
-    static_configs:
-      - targets: ["%s"]`
-
-	return []byte(fmt.Sprintf(config, appHost))
 }
