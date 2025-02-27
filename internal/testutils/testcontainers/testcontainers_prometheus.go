@@ -93,7 +93,7 @@ func (p *testPrometheusContainer) GetContainerAddress(ctx context.Context) (TCon
 	if err != nil {
 		return TContainerAddr{}, fmt.Errorf("failed to get prometheus container port: %w", err)
 	}
-	return NewTContainerAddr(host, port.Int()), nil
+	return newTContainerAddr(host, port.Int()), nil
 }
 
 func getPrometheusConfig(appHost string) []byte {

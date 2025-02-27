@@ -11,7 +11,7 @@ type TContainerAddr struct {
 	Address string
 }
 
-func NewTContainerAddr(host string, port int) TContainerAddr {
+func newTContainerAddr(host string, port int) TContainerAddr {
 	address := fmt.Sprintf("%s:%d", host, port)
 	return TContainerAddr{Host: host, Port: port, Address: address}
 }
