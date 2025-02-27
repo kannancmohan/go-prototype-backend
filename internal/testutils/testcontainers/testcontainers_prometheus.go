@@ -10,35 +10,40 @@ import (
 )
 
 const (
-	prometheusImage       = "prom/prometheus:v3.1.0"
-	PrometheusExposedPort = "9090"
+	prometheusImage            = "prom/prometheus:v3.1.0"
+	prometheusExposedPort      = "9090"
+	prometheusClientConfigPath = "/etc/prometheus/prometheus.yml"
 )
 
+var _ tContainer[testcontainers.Container] = &testPrometheusContainer{}
+
 type testPrometheusContainer struct {
+	metricsAppAddr string
+	container      testcontainers.Container
 }
 
-func NewPrometheusContainer() *testPrometheusContainer {
-	return &testPrometheusContainer{}
-}
-
-func (p *testPrometheusContainer) CreatePrometheusTestContainer(metricsAppAddr string) (testcontainers.Container, func(ctx context.Context) error, error) {
+// metricsAppAddr is the endpoint from where prometheus will pulls metrics from
+func NewPrometheusContainer(metricsAppAddr string) *testPrometheusContainer {
 	if metricsAppAddr == "" {
-		metricsAppAddr = "localhost:9090"
+		metricsAppAddr = "localhost:9090" //default address of metrics app
 	}
+	return &testPrometheusContainer{metricsAppAddr: metricsAppAddr}
+}
 
-	timeoutCtx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+func (p *testPrometheusContainer) Start(ctx context.Context) error {
+	timeoutCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
-	ctr, err := testcontainers.GenericContainer(timeoutCtx, testcontainers.GenericContainerRequest{
+	container, err := testcontainers.GenericContainer(timeoutCtx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
 			Image:        prometheusImage,
-			ExposedPorts: []string{fmt.Sprintf("%s/tcp", PrometheusExposedPort)},
-			WaitingFor:   wait.ForHTTP("/").WithPort(PrometheusExposedPort + "/tcp"),
+			ExposedPorts: []string{fmt.Sprintf("%s/tcp", prometheusExposedPort)},
+			WaitingFor:   wait.ForHTTP("/").WithPort(prometheusExposedPort + "/tcp"),
 			LifecycleHooks: []testcontainers.ContainerLifecycleHooks{
 				{
 					PreStarts: []testcontainers.ContainerHook{
 						func(ctx context.Context, c testcontainers.Container) error {
-							err := c.CopyToContainer(ctx, getPrometheusConfig(metricsAppAddr), "/etc/prometheus/prometheus.yml", 0o755)
+							err := c.CopyToContainer(ctx, getPrometheusConfig(p.metricsAppAddr), prometheusClientConfigPath, 0o755)
 							if err != nil {
 								return fmt.Errorf("failed to copy script to container: %w", err)
 							}
@@ -52,18 +57,43 @@ func (p *testPrometheusContainer) CreatePrometheusTestContainer(metricsAppAddr s
 	})
 
 	if err != nil {
-		return ctr, func(ctx context.Context) error { return nil }, err
+		return err
 	}
 
-	cleanupFunc := func(ctx context.Context) error {
-		err := ctr.Terminate(ctx)
-		if err != nil {
+	p.container = container
+
+	return nil
+}
+
+func (p *testPrometheusContainer) Stop(ctx context.Context) error {
+	if p.container != nil {
+		if err := p.container.Terminate(ctx); err != nil {
 			return err
 		}
-		return nil
 	}
-	return ctr, cleanupFunc, nil
+	return nil
+}
 
+func (p *testPrometheusContainer) GetContainer() (testcontainers.Container, error) {
+	if p.container == nil {
+		return nil, fmt.Errorf("GetContainer : prometheus container not initialized/started")
+	}
+	return p.container, nil
+}
+
+func (p *testPrometheusContainer) GetContainerAddress(ctx context.Context) (TContainerAddr, error) {
+	if p.container == nil {
+		return TContainerAddr{}, fmt.Errorf("GetContainerAddress : prometheus container not initialized/started")
+	}
+	host, err := p.container.Host(ctx)
+	if err != nil {
+		return TContainerAddr{}, fmt.Errorf("failed to get prometheus container host: %w", err)
+	}
+	port, err := p.container.MappedPort(ctx, prometheusExposedPort)
+	if err != nil {
+		return TContainerAddr{}, fmt.Errorf("failed to get prometheus container port: %w", err)
+	}
+	return NewTContainerAddr(host, port.Int()), nil
 }
 
 func getPrometheusConfig(appHost string) []byte {

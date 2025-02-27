@@ -30,19 +30,16 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 	metricsAppPort := ports[1]
 	ctx := context.Background()
 
-	promContainer, cleanupFunc, err := tc_testutils.NewPrometheusContainer().CreatePrometheusTestContainer(fmt.Sprintf("%s:%d", appHost, metricsAppPort))
+	promContainer := tc_testutils.NewPrometheusContainer(fmt.Sprintf("%s:%d", appHost, metricsAppPort))
+	err = promContainer.Start(ctx)
 	if err != nil {
-		t.Fatalf("failed to create prometheus container : %v", err)
+		t.Fatalf("failed to start prometheus container : %v", err)
 	}
-	defer cleanupFunc(ctx)
+	defer promContainer.Stop(context.Background())
 
-	prometheusHost, err := promContainer.Host(ctx)
+	containerAddr, err := promContainer.GetContainerAddress(ctx)
 	if err != nil {
-		t.Fatalf("failed to get prometheus container host: %v", err)
-	}
-	prometheusPort, err := promContainer.MappedPort(ctx, tc_testutils.PrometheusExposedPort)
-	if err != nil {
-		t.Fatalf("failed to get prometheus container port: %v", err)
+		t.Fatalf("failed to get prometheus container address: %v", err)
 	}
 
 	config := apprunner.AppRunnerConfig{
@@ -83,7 +80,7 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 		t.Error("expected metrics response, received error instead.", err.Error())
 	}
 
-	promUrl := fmt.Sprintf("http://%s:%s/api/v1/query?query=example_app_requests_total", prometheusHost, prometheusPort.Port())
+	promUrl := fmt.Sprintf("http://%s/api/v1/query?query=example_app_requests_total", containerAddr.Address)
 	_, err = testutils.RetryHTTPGetRequest(promUrl, "example_app_requests_total", http.StatusOK, 5, retryDelay)
 	if err != nil {
 		t.Error("expected prometheus response, received error instead.", err.Error())
