@@ -18,7 +18,7 @@ var _ tContainer[*grafana_lgtm.GrafanaLGTMContainer] = &testLgtmContainer{}
 
 type testLgtmContainer struct {
 	metricsAppAddr string
-	container *grafana_lgtm.GrafanaLGTMContainer
+	container      *grafana_lgtm.GrafanaLGTMContainer
 }
 
 // metricsAppAddr is the endpoint from where prometheus will pulls metrics from

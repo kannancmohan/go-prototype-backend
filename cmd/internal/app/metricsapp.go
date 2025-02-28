@@ -3,11 +3,11 @@ package app
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"sync"
 	"time"
 
+	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/common/log"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -47,6 +47,7 @@ func NewMetricsServerApp(cfg MetricsServerAppConfig) *MetricsServerApp {
 }
 
 var _ App = &MetricsServerApp{}
+var _ Loggable = &MetricsServerApp{}
 
 type MetricsServerApp struct {
 	Registerer      prometheus.Registerer
@@ -55,9 +56,11 @@ type MetricsServerApp struct {
 	Path            string
 	shutdownTimeout time.Duration
 	server          *http.Server
+	log             log.Logger
 	mu              sync.Mutex
 }
 
+// RegisterCollectors. custom function to register app specific metrics collector
 func (e *MetricsServerApp) RegisterCollectors(metrics ...prometheus.Collector) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -87,7 +90,7 @@ func (e *MetricsServerApp) Run(ctx context.Context) error {
 
 	errCh := make(chan error, 1)
 	go func() {
-		slog.Info(fmt.Sprintf("metrics server started on port %d at path %s", e.Port, e.Path))
+		e.log.Info(fmt.Sprintf("metrics server started on port %d at path %s", e.Port, e.Path))
 		if err := e.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errCh <- fmt.Errorf("metrics server failed: %w", err)
 		}
@@ -114,13 +117,17 @@ func (e *MetricsServerApp) Stop(ctx context.Context) error {
 		return nil // Server was never started
 	}
 
-	slog.Debug("stopping metrics server gracefully")
+	e.log.Debug("stopping metrics server gracefully")
 	shutdownCtx, cancel := context.WithTimeout(ctx, e.shutdownTimeout)
 	defer cancel()
 
 	if err := e.server.Shutdown(shutdownCtx); err != nil {
 		return fmt.Errorf("failed to stop metrics server: %w", err)
 	}
-	slog.Info("metrics server stopped")
+	e.log.Info("metrics server stopped")
 	return nil
+}
+
+func (e *MetricsServerApp) SetLogger(logger log.Logger) {
+	e.log = logger
 }
