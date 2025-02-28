@@ -34,7 +34,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	defer cancel()
 
-	logger.Info("\u001B[1;32mStarting App\u001B[0m")
+	logger.Info("Starting App...")
 
 	err = runner.Run(ctx)
 	if err != nil {
