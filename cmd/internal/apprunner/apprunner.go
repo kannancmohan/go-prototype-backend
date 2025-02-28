@@ -4,32 +4,44 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/app"
+	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/common/log"
 )
 
 type AppRunnerConfig struct {
 	AdditionalApps      []app.App                  // Additional apps to run
 	ExitWait            time.Duration              // Maximum duration to wait for apps to stop. (Need to set a value greater than 0 to take effect)
 	MetricsServerConfig app.MetricsServerAppConfig // Configuration for the metrics server
+	Logger              log.Logger
 }
 
 type appRunner struct {
 	apps     []app.App
+	log      log.Logger
 	exitWait time.Duration // Maximum duration to wait for apps to stop
 	mu       sync.Mutex    // Mutex to protect the apps slice
 }
 
-func NewAppRunner(mainApp app.App, config AppRunnerConfig) *appRunner {
+func NewAppRunner(mainApp app.App, config AppRunnerConfig) (*appRunner, error) {
+	if mainApp == nil {
+		return nil, fmt.Errorf("mainApp cannot be nil")
+	}
+
+	// if logger is not available, setting it to NoOpLogger which does nothing when its method are called
+	if config.Logger == nil {
+		config.Logger = &log.NoOpLogger{}
+	}
+
 	apps := []app.App{mainApp}
 
 	if len(config.AdditionalApps) > 0 {
 		apps = append(apps, config.AdditionalApps...)
 	}
 
+	// register the metrics collectors from apps that supports it
 	if config.MetricsServerConfig.Enabled {
 		metricsApp := app.NewMetricsServerApp(config.MetricsServerConfig)
 		for _, ap := range apps {
@@ -41,10 +53,18 @@ func NewAppRunner(mainApp app.App, config AppRunnerConfig) *appRunner {
 		apps = append(apps, metricsApp)
 	}
 
+	// Inject the logger into each app that supports it
+	for _, ap := range apps {
+		if loggableApp, ok := ap.(app.Loggable); ok {
+			loggableApp.SetLogger(config.Logger)
+		}
+	}
+
 	return &appRunner{
 		apps:     apps,
+		log:      config.Logger,
 		exitWait: config.ExitWait,
-	}
+	}, nil
 }
 
 func (ar *appRunner) Run(ctx context.Context) error {
@@ -68,13 +88,13 @@ func (ar *appRunner) Run(ctx context.Context) error {
 	// Wait for an app to fail or context cancellation
 	select {
 	case <-ctx.Done():
-		slog.Info("Context canceled, stopping apps")
+		ar.log.Info("Context canceled, stopping apps")
 		if err := ar.StopApps(); err != nil {
 			return fmt.Errorf("failed to stop apps: %w", err)
 		}
 		return nil
 	case err := <-errChan:
-		slog.Info("App failed, stopping all apps")
+		ar.log.Info("App failed, stopping all apps")
 		if stopErr := ar.StopApps(); stopErr != nil {
 			return errors.Join(err, fmt.Errorf("failed to stop apps: %w", stopErr))
 		}

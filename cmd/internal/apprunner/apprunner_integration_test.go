@@ -3,13 +3,13 @@ package apprunner_test
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/app"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/apprunner"
+	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/common/log"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/testutils"
 	tc_testutils "github.com/kannancmohan/go-prototype-backend-apps-temp/internal/testutils/testcontainers"
 	"github.com/prometheus/client_golang/prometheus"
@@ -49,10 +49,11 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 			Path:            "/metrics",
 			ShutdownTimeout: 5 * time.Second,
 		},
+		Logger:   log.NewSimpleSlogLogger(nil),
 		ExitWait: 5 * time.Second,
 	}
 
-	runner := apprunner.NewAppRunner(NewExampleApp(appPort), config)
+	runner, _ := apprunner.NewAppRunner(NewExampleApp(appPort), config)
 	defer runner.StopApps()
 
 	go func() {
@@ -92,6 +93,7 @@ type exampleApp struct {
 	port           int
 	server         *http.Server
 	requestCounter prometheus.Counter
+	log            log.Logger
 }
 
 func NewExampleApp(port int) *exampleApp {
@@ -119,7 +121,7 @@ func (e *exampleApp) Run(ctx context.Context) error {
 	}
 	errCh := make(chan error, 1)
 	go func() {
-		log.Printf("starting example app at port:%d", e.port)
+		e.log.Info("starting example app", "port", e.port)
 		if err := e.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errCh <- fmt.Errorf("test server failed: %w", err)
 		}
@@ -140,10 +142,14 @@ func (e *exampleApp) Stop(ctx context.Context) error {
 	if err := e.server.Shutdown(context.Background()); err != nil {
 		return fmt.Errorf("failed to stop test server: %w", err)
 	}
-	log.Print("stopped the app")
+	e.log.Info("stopped the app")
 	return nil
 }
 
 func (e *exampleApp) PrometheusCollectors() []prometheus.Collector {
 	return []prometheus.Collector{e.requestCounter}
+}
+
+func (e *exampleApp) SetLogger(logger log.Logger) {
+	e.log = logger
 }
