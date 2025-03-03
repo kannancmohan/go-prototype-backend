@@ -12,12 +12,13 @@ import (
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/app"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/apprunner"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/common/log"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func main() {
 
 	appConf := &app.AppConf[testAppEnvVar]{Name: "test"}
-	logger := log.NewSimpleSlogLogger("info")
+	logger := log.NewSimpleSlogLogger(log.INFO)
 
 	runner, err := apprunner.NewAppRunner(NewTestApp(9933),
 		apprunner.AppRunnerConfig{
@@ -60,8 +61,9 @@ type testApp struct {
 	shutdownTimeout time.Duration
 	server          *http.Server
 	log             log.Logger
-	mu              sync.Mutex
 	appConf         *app.AppConf[testAppEnvVar]
+	tracer          trace.Tracer
+	mu              sync.Mutex
 }
 
 func (t *testApp) Run(ctx context.Context) error {
@@ -118,6 +120,10 @@ func (t *testApp) SetLogger(logger log.Logger) {
 
 func (t *testApp) SetAppConf(conf *app.AppConf[testAppEnvVar]) {
 	t.appConf = conf
+}
+
+func (t *testApp) SetTracer(tracer trace.Tracer) {
+	t.tracer = tracer
 }
 
 var _ app.Loggable = &testApp{}

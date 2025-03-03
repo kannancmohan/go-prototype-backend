@@ -6,6 +6,15 @@ import (
 	"os"
 )
 
+type Level string
+
+const (
+	DEBUG = Level("debug")
+	INFO  = Level("info")
+	WARN  = Level("warn")
+	ERROR = Level("error")
+)
+
 var _ Logger = &slogLogger{}
 
 type slogLogger struct {
@@ -13,15 +22,15 @@ type slogLogger struct {
 	ctx    context.Context
 }
 
-func NewSimpleSlogLogger(logLevelStr string) Logger {
-	if logLevelStr == ""{
-		return NewSlogLogger(slog.New(slog.NewJSONHandler(os.Stdout,&slog.HandlerOptions{})))
+func NewSimpleSlogLogger(logLevel Level) Logger {
+	if logLevel == "" {
+		return NewSlogLogger(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{})))
 	}
 
 	var level slog.Level
-	err := level.UnmarshalText([]byte(logLevelStr))
+	err := level.UnmarshalText([]byte(logLevel))
 	if err != nil {
-		return NewSlogLogger(slog.New(slog.NewJSONHandler(os.Stdout,&slog.HandlerOptions{})))
+		return NewSlogLogger(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{})))
 	}
 	return NewSlogLogger(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})))
 }
