@@ -11,6 +11,7 @@ import (
 
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/app"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/apprunner"
+	app_trace "github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/common/trace"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/common/log"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -20,6 +21,11 @@ func main() {
 	appConf := &app.AppConf[testAppEnvVar]{Name: "test"}
 	logger := log.NewSimpleSlogLogger(log.INFO)
 
+	tracer, err := app_trace.NewOTelTracerProvider(app_trace.OpenTelemetryConfig{Host: "localhost", Port: 3200, ConnType: app_trace.OTelConnTypeHTTP, ServiceName: "user-service-dev"})
+	if err != nil {
+		panic(fmt.Errorf("error creating otel tracer provider: %w", err))
+	}
+
 	runner, err := apprunner.NewAppRunner(NewTestApp(9933),
 		apprunner.AppRunnerConfig{
 			ExitWait: 5 * time.Second,
@@ -27,6 +33,10 @@ func main() {
 				Enabled: true,
 			},
 			Logger: logger,
+			TracingConfig: apprunner.TracingConfig{
+				Enabled:        true,
+				TracerProvider: tracer,
+			},
 		},
 		appConf)
 	if err != nil {
