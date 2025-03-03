@@ -25,7 +25,7 @@ type appRunner struct {
 	mu       sync.Mutex    // Mutex to protect the apps slice
 }
 
-func NewAppRunner(mainApp app.App, config AppRunnerConfig) (*appRunner, error) {
+func NewAppRunner[T any](mainApp app.App, config AppRunnerConfig, appConfig *app.AppConf[T]) (*appRunner, error) {
 	if mainApp == nil {
 		return nil, fmt.Errorf("mainApp cannot be nil")
 	}
@@ -45,7 +45,7 @@ func NewAppRunner(mainApp app.App, config AppRunnerConfig) (*appRunner, error) {
 	if config.MetricsServerConfig.Enabled {
 		metricsApp := app.NewMetricsServerApp(config.MetricsServerConfig)
 		for _, ap := range apps {
-			if provider, ok := ap.(app.MetricsProvider); ok {
+			if provider, ok := ap.(app.MetricsSetter); ok {
 				collectors := provider.PrometheusCollectors()
 				metricsApp.RegisterCollectors(collectors...)
 			}
@@ -53,10 +53,13 @@ func NewAppRunner(mainApp app.App, config AppRunnerConfig) (*appRunner, error) {
 		apps = append(apps, metricsApp)
 	}
 
-	// Inject the logger into each app that supports it
+	// set the logger and appConf into each app that supports it
 	for _, ap := range apps {
 		if loggableApp, ok := ap.(app.Loggable); ok {
 			loggableApp.SetLogger(config.Logger)
+		}
+		if configurableApp, ok := ap.(app.AppConfigSetter[T]); ok {
+			configurableApp.SetAppConf(appConfig)
 		}
 	}
 
