@@ -13,12 +13,17 @@ type slogLogger struct {
 	ctx    context.Context
 }
 
-func NewSimpleSlogLogger(logLevel slog.Leveler) Logger {
-	opts := &slog.HandlerOptions{}
-	if logLevel != nil {
-		opts.Level = logLevel
+func NewSimpleSlogLogger(logLevelStr string) Logger {
+	if logLevelStr == ""{
+		return NewSlogLogger(slog.New(slog.NewJSONHandler(os.Stdout,&slog.HandlerOptions{})))
 	}
-	return NewSlogLogger(slog.New(slog.NewJSONHandler(os.Stdout, opts)))
+
+	var level slog.Level
+	err := level.UnmarshalText([]byte(logLevelStr))
+	if err != nil {
+		return NewSlogLogger(slog.New(slog.NewJSONHandler(os.Stdout,&slog.HandlerOptions{})))
+	}
+	return NewSlogLogger(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})))
 }
 
 func NewSlogLogger(logger *slog.Logger) Logger {

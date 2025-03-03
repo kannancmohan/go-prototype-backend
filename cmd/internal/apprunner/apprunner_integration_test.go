@@ -49,7 +49,7 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 			Path:            "/metrics",
 			ShutdownTimeout: 5 * time.Second,
 		},
-		Logger:   log.NewSimpleSlogLogger(nil),
+		Logger:   log.NewSimpleSlogLogger(""),
 		ExitWait: 5 * time.Second,
 	}
 

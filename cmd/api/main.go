@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,7 +17,7 @@ import (
 func main() {
 
 	appConf := &app.AppConf[testAppEnvVar]{Name: "test"}
-	logger := log.NewSimpleSlogLogger(slog.LevelInfo)
+	logger := log.NewSimpleSlogLogger("info")
 
 	runner, err := apprunner.NewAppRunner(NewTestApp(9933),
 		apprunner.AppRunnerConfig{
