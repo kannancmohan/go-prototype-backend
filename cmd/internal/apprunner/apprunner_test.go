@@ -3,6 +3,8 @@ package apprunner_test
 import (
 	"context"
 	"errors"
+	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -13,6 +15,7 @@ import (
 
 // MockApp is a mock implementation of the App interface for testing.
 type MockApp struct {
+	appConf  app.AppConf[any]
 	RunFunc  func(ctx context.Context) error
 	StopFunc func(ctx context.Context) error
 }
@@ -23,6 +26,10 @@ func (m *MockApp) Run(ctx context.Context) error {
 
 func (m *MockApp) Stop(ctx context.Context) error {
 	return m.StopFunc(ctx)
+}
+
+func (m *MockApp) SetAppConf(conf app.AppConf[any]) {
+	m.appConf = conf
 }
 
 func TestAppRunner_Run(t *testing.T) {
@@ -132,7 +139,7 @@ func TestAppRunner_Run(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			runner, _ := apprunner.NewAppRunner(tt.mainApp, tt.config)
+			runner, _ := apprunner.NewAppRunner(tt.mainApp, tt.config, app.EmptyAppConf)
 			ctx, cancel := context.WithTimeout(context.Background(), tt.ctxTimeout)
 			defer cancel()
 
@@ -149,6 +156,79 @@ func TestAppRunner_Run(t *testing.T) {
 				}
 			}
 
+		})
+	}
+}
+
+func TestAppRunner_WithAppConf(t *testing.T) {
+
+	tests := []struct {
+		name            string
+		mainApp         *MockApp
+		config          apprunner.AppRunnerConfig
+		inputAppConf    app.AppConf[any]
+		ctxTimeout      time.Duration
+		expectedAppConf any
+	}{
+		{
+			name: "Successful Run",
+			mainApp: &MockApp{
+				RunFunc: func(ctx context.Context) error {
+					<-ctx.Done()
+					return nil
+				},
+				StopFunc: func(ctx context.Context) error {
+					return nil
+				},
+			},
+			config: apprunner.AppRunnerConfig{
+				MetricsServerConfig: app.MetricsServerAppConfig{
+					Enabled: false,
+				},
+				ExitWait: 5 * time.Second,
+			},
+			inputAppConf:    app.AppConf[any]{Name: "test", EnvVar: struct{ EnvVarName1 string }{EnvVarName1: "EnvVarName1"}},
+			ctxTimeout:      1 * time.Second,
+			expectedAppConf: app.AppConf[any]{Name: "test", EnvVar: struct{ EnvVarName1 string }{EnvVarName1: "EnvVarName1"}},
+		},
+		{
+			name: "Successful Run - With empty AppConf",
+			mainApp: &MockApp{
+				RunFunc: func(ctx context.Context) error {
+					<-ctx.Done()
+					return nil
+				},
+				StopFunc: func(ctx context.Context) error {
+					return nil
+				},
+			},
+			config: apprunner.AppRunnerConfig{
+				MetricsServerConfig: app.MetricsServerAppConfig{
+					Enabled: false,
+				},
+				ExitWait: 5 * time.Second,
+			},
+			inputAppConf:    app.AppConf[any]{},
+			ctxTimeout:      1 * time.Second,
+			expectedAppConf: app.AppConf[any]{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			runner, _ := apprunner.NewAppRunner(tt.mainApp, tt.config, &tt.inputAppConf)
+			ctx, cancel := context.WithTimeout(context.Background(), tt.ctxTimeout)
+			defer cancel()
+
+			err := runner.Run(ctx)
+			if tt.expectedAppConf != nil && reflect.DeepEqual(tt.expectedAppConf, tt.mainApp.appConf) {
+				fmt.Println("actual:", tt.mainApp.appConf)
+				fmt.Println("expected:", tt.expectedAppConf)
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error, got: %v", err)
+				}
+			}
 		})
 	}
 }

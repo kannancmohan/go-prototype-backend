@@ -17,16 +17,18 @@ import (
 
 func main() {
 
+	appConf := &app.AppConf[testAppEnvVar]{Name: "test"}
 	logger := log.NewSimpleSlogLogger(slog.LevelInfo)
 
-	testApp := NewTestApp(9933)
-	runner, err := apprunner.NewAppRunner(testApp, apprunner.AppRunnerConfig{
-		ExitWait: 5 * time.Second,
-		MetricsServerConfig: app.MetricsServerAppConfig{
-			Enabled: true,
+	runner, err := apprunner.NewAppRunner(NewTestApp(9933),
+		apprunner.AppRunnerConfig{
+			ExitWait: 5 * time.Second,
+			MetricsServerConfig: app.MetricsServerAppConfig{
+				Enabled: true,
+			},
+			Logger: logger,
 		},
-		Logger: logger,
-	})
+		appConf)
 	if err != nil {
 		panic(fmt.Errorf("error creating apprunner: %w", err))
 	}
@@ -42,6 +44,11 @@ func main() {
 	}
 }
 
+type testAppEnvVar struct {
+	EnvName  string
+	LogLevel string
+}
+
 func NewTestApp(port int) *testApp {
 	return &testApp{
 		port:            port,
@@ -55,6 +62,7 @@ type testApp struct {
 	server          *http.Server
 	log             log.Logger
 	mu              sync.Mutex
+	appConf         *app.AppConf[testAppEnvVar]
 }
 
 func (t *testApp) Run(ctx context.Context) error {
@@ -108,3 +116,10 @@ func (t *testApp) Stop(ctx context.Context) error {
 func (t *testApp) SetLogger(logger log.Logger) {
 	t.log = logger
 }
+
+func (t *testApp) SetAppConf(conf *app.AppConf[testAppEnvVar]) {
+	t.appConf = conf
+}
+
+var _ app.Loggable = &testApp{}
+var _ app.AppConfigSetter[testAppEnvVar] = &testApp{}

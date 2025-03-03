@@ -53,7 +53,7 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 		ExitWait: 5 * time.Second,
 	}
 
-	runner, _ := apprunner.NewAppRunner(NewExampleApp(appPort), config)
+	runner, _ := apprunner.NewAppRunner(NewExampleApp(appPort), config, app.EmptyAppConf)
 	defer runner.StopApps()
 
 	go func() {
