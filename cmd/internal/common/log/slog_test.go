@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"testing"
 
+	log_impl "github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/common/log"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/common/log"
 )
 
@@ -61,7 +62,7 @@ func TestSlogLogger(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			logger := log.NewSlogLogger(slog.New(slog.NewJSONHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug})))
+			logger := log_impl.NewSlogLogger(slog.New(slog.NewJSONHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug})))
 			tt.loggerMethod(logger, tt.inputMsg, tt.inputArgs...)
 
 			var logOutput map[string]any
@@ -116,7 +117,7 @@ func TestSlogLoggerWithContext(t *testing.T) {
 
 			ctx := context.WithValue(context.Background(), tt.inputContextArgs[0], tt.inputContextArgs[1])
 			slogHandler := newTestSlogHandler(string(testContextKey), slog.NewJSONHandler(&buf, nil))
-			logger := log.NewSlogLogger(slog.New(slogHandler))
+			logger := log_impl.NewSlogLogger(slog.New(slogHandler))
 			loggerWithContext := logger.WithContext(ctx)
 
 			tt.loggerMethod(loggerWithContext, tt.inputMsg, tt.inputArgs...)
@@ -176,7 +177,7 @@ func TestSlogLoggerWith(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
 
-			logger := log.NewSlogLogger(slog.New(slog.NewJSONHandler(&buf, nil)))
+			logger := log_impl.NewSlogLogger(slog.New(slog.NewJSONHandler(&buf, nil)))
 			loggerWithFields := logger.With(tt.inputWithArgs...)
 
 			tt.loggerMethod(loggerWithFields, tt.inputMsg, tt.inputArgs...)

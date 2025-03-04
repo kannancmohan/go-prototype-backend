@@ -11,6 +11,7 @@ import (
 
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/app"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/apprunner"
+	log_impl "github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/common/log"
 	app_trace "github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/common/trace"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/common/log"
 	"go.opentelemetry.io/otel/trace"
@@ -19,7 +20,7 @@ import (
 func main() {
 
 	appConf := &app.AppConf[testAppEnvVar]{Name: "test"}
-	logger := log.NewSimpleSlogLogger(log.INFO)
+	logger := log_impl.NewSimpleSlogLogger(log_impl.INFO)
 
 	tracer, err := app_trace.NewOTelTracerProvider(app_trace.OpenTelemetryConfig{Host: "localhost", Port: 3200, ConnType: app_trace.OTelConnTypeHTTP, ServiceName: "user-service-dev"})
 	if err != nil {

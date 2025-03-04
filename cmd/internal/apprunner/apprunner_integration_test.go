@@ -9,6 +9,7 @@ import (
 
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/app"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/apprunner"
+	log_impl "github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/common/log"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/common/log"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/testutils"
 	tc_testutils "github.com/kannancmohan/go-prototype-backend-apps-temp/internal/testutils/testcontainers"
@@ -49,7 +50,7 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 			Path:            "/metrics",
 			ShutdownTimeout: 5 * time.Second,
 		},
-		Logger:   log.NewSimpleSlogLogger(log.INFO),
+		Logger:   log_impl.NewSimpleSlogLogger(log_impl.INFO),
 		ExitWait: 5 * time.Second,
 	}
 
