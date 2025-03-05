@@ -19,13 +19,18 @@ import (
 
 func main() {
 
-	appConf := &app.AppConf[testAppEnvVar]{Name: "test"}
+	appConf := &app.AppConf[testAppEnvVar]{Name: "test-app"} //TODO ensure mandatory fields(eg Name) are available
 	logger := log_impl.NewSimpleSlogLogger(log_impl.INFO)
 
-	tracer, err := app_trace.NewOTelTracerProvider(app_trace.OpenTelemetryConfig{Host: "localhost", Port: 3200, ConnType: app_trace.OTelConnTypeHTTP, ServiceName: "user-service-dev"})
+	tracer, shutdown, err := app_trace.NewOTelTracerProvider(app_trace.OpenTelemetryConfig{Host: "localhost",
+		Port:        3200,
+		ConnType:    app_trace.OTelConnTypeHTTP,
+		ServiceName: appConf.Name,
+	})
 	if err != nil {
 		panic(fmt.Errorf("error creating otel tracer provider: %w", err))
 	}
+	defer shutdown(context.Background())
 
 	runner, err := apprunner.NewAppRunner(NewTestApp(9933),
 		apprunner.AppRunnerConfig{

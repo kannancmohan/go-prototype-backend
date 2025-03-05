@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"time"
 
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
@@ -28,9 +30,9 @@ const (
 	OTelConnTypeHTTP = OTelConnType("http")
 )
 
-func NewOTelTracerProvider(cfg OpenTelemetryConfig) (*trace.TracerProvider, error) {
+func NewOTelTracerProvider(cfg OpenTelemetryConfig) (*trace.TracerProvider, func(context.Context) error, error) {
 	if cfg.Host == "" || cfg.Port == 0 || cfg.ServiceName == "" {
-		return nil, errors.New("invalid OpenTelemetry configuration: Host, Port, and ServiceName are required")
+		return nil, nil, errors.New("invalid OpenTelemetry configuration: Host, Port, and ServiceName are required")
 	}
 
 	var exporter *otlptrace.Exporter
@@ -44,20 +46,20 @@ func NewOTelTracerProvider(cfg OpenTelemetryConfig) (*trace.TracerProvider, erro
 		exporter, err = otlptracegrpc.New(
 			ctx,
 			otlptracegrpc.WithEndpoint(fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)),
-			otlptracegrpc.WithInsecure(),
+			otlptracegrpc.WithInsecure(), //TODO check this
 		)
 	case OTelConnTypeHTTP:
 		exporter, err = otlptracehttp.New(
 			ctx,
 			otlptracehttp.WithEndpoint(fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)),
-			otlptracehttp.WithInsecure(),
+			otlptracehttp.WithInsecure(), //TODO check this
 		)
 	default:
-		return nil, fmt.Errorf("unsupported connection type: %s", cfg.ConnType)
+		return nil, nil, fmt.Errorf("unsupported connection type: %s", cfg.ConnType)
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to create OTLP exporter: %w", err)
+		return nil, nil, fmt.Errorf("failed to create OTLP exporter: %w", err)
 	}
 
 	res, err := resource.New(
@@ -69,7 +71,7 @@ func NewOTelTracerProvider(cfg OpenTelemetryConfig) (*trace.TracerProvider, erro
 		resource.WithTelemetrySDK(),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create OTEL resource: %w", err)
+		return nil, nil, fmt.Errorf("failed to create OTEL resource: %w", err)
 	}
 
 	tp := trace.NewTracerProvider(
@@ -79,5 +81,8 @@ func NewOTelTracerProvider(cfg OpenTelemetryConfig) (*trace.TracerProvider, erro
 
 	//otel.SetTracerProvider(tp)// Set the global TracerProvider
 
-	return tp, nil
+	//Setting this ensure that trace context(eg trace ID,span ID & other metadata) is properly propagated across your distributed system
+	otel.SetTextMapPropagator(propagation.TraceContext{}) //Sets the global propagator for injecting and extracting trace context.
+
+	return tp, func(ctx context.Context) error { return tp.Shutdown(ctx) }, nil
 }

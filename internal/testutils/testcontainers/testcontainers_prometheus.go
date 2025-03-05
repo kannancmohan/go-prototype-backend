@@ -11,7 +11,7 @@ import (
 
 const (
 	prometheusImage            = "prom/prometheus:v3.1.0"
-	prometheusExposedPort      = "9090"
+	prometheusExposedPort      = "9090/tcp"
 	prometheusClientConfigPath = "/etc/prometheus/prometheus.yml"
 )
 
@@ -34,26 +34,28 @@ func (p *testPrometheusContainer) Start(ctx context.Context) error {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
-	container, err := testcontainers.GenericContainer(timeoutCtx, testcontainers.GenericContainerRequest{
-		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        prometheusImage,
-			ExposedPorts: []string{fmt.Sprintf("%s/tcp", prometheusExposedPort)},
-			WaitingFor:   wait.ForHTTP("/").WithPort(prometheusExposedPort + "/tcp"),
-			LifecycleHooks: []testcontainers.ContainerLifecycleHooks{
-				{
-					PreStarts: []testcontainers.ContainerHook{
-						func(ctx context.Context, c testcontainers.Container) error {
-							err := c.CopyToContainer(ctx, getPrometheusConfig(p.metricsAppAddr), prometheusClientConfigPath, 0o755)
-							if err != nil {
-								return fmt.Errorf("failed to copy script to container: %w", err)
-							}
-							return nil
-						},
+	req := testcontainers.ContainerRequest{
+		Image:        prometheusImage,
+		ExposedPorts: []string{prometheusExposedPort},
+		WaitingFor:   wait.ForHTTP("/").WithPort(prometheusExposedPort),
+		LifecycleHooks: []testcontainers.ContainerLifecycleHooks{
+			{
+				PreStarts: []testcontainers.ContainerHook{
+					func(ctx context.Context, c testcontainers.Container) error {
+						err := c.CopyToContainer(ctx, getPrometheusConfig(p.metricsAppAddr), prometheusClientConfigPath, 0o644)
+						if err != nil {
+							return fmt.Errorf("failed to copy prometheus config to container: %w", err)
+						}
+						return nil
 					},
 				},
 			},
 		},
-		Started: true,
+	}
+
+	container, err := testcontainers.GenericContainer(timeoutCtx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
 	})
 
 	if err != nil {

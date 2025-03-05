@@ -82,8 +82,8 @@ func NewAppRunner[T any](mainApp app.App, config AppRunnerConfig, appConfig *app
 		appRunnerTracer = tracerProvider.Tracer("apprunner")
 		for _, ap := range apps {
 			if traceable, ok := ap.(app.Traceable); ok {
-				tracerName := fmt.Sprintf("%T", ap) // TODO set proper app name.
-				tracer := tracerProvider.Tracer(tracerName)
+				tracerName := fmt.Sprintf("%T", ap)         // TODO set proper app name.
+				tracer := tracerProvider.Tracer(tracerName) //TODO do we need to set the name from here or allow apps to set it
 				traceable.SetTracer(tracer)
 			}
 		}
