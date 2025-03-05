@@ -11,11 +11,13 @@ import (
 
 const (
 	tempoImage               = "grafana/tempo:2.7.1"
-	tempoApiPort             = 3200
-	tempoExposedApiPort      = "3200/tcp"
-	tempoExposedOTLPGrpcPort = "4317/tcp"
-	tempoExposedOTLPHttpPort = "4318/tcp"
 	tempoConfigPath          = "/etc/tempo.yaml"
+	tempoApiPort             = "3200"
+	tempoExposedApiPort      = tempoApiPort + "/tcp"
+	tempoGrpcPort            = "4317"
+	tempoExposedOTLPGrpcPort = tempoGrpcPort + "/tcp"
+	tempoHttpPort            = "4318"
+	tempoExposedOTLPHttpPort = tempoHttpPort + "/tcp"
 )
 
 var _ tContainer[testcontainers.Container] = &testTempoContainer{}
@@ -41,7 +43,7 @@ func (p *testTempoContainer) Start(ctx context.Context) error {
 			{
 				PreStarts: []testcontainers.ContainerHook{
 					func(ctx context.Context, c testcontainers.Container) error {
-						err := c.CopyToContainer(ctx, getTempoConfig(tempoApiPort), tempoConfigPath, 0o644)
+						err := c.CopyToContainer(ctx, getTempoConfig(tempoApiPort, tempoGrpcPort, tempoHttpPort), tempoConfigPath, 0o644)
 						if err != nil {
 							return fmt.Errorf("failed to copy tempo config to container: %w", err)
 						}
@@ -123,17 +125,19 @@ func (p *testTempoContainer) GetContainerOTLPGrpcAddress(ctx context.Context) (T
 	return newTContainerAddr(host, port.Int()), nil
 }
 
-func getTempoConfig(tempoApiPort int) []byte {
+func getTempoConfig(tempoApiPort, tempoOtlpGrpcPort, tempoOtlpHttpPort string) []byte {
 	config := `
 server:
-  http_listen_port: %d
+  http_listen_port: %s
 
 distributor:
   receivers:
     otlp:
       protocols:
-        grpc:
         http:
+          endpoint: "0.0.0.0:%s"
+        grpc:
+          endpoint: "0.0.0.0:%s"
 
 ingester:
   trace_idle_period: 10s
@@ -150,9 +154,6 @@ storage:
     backend: local
     local:
       path: /tmp/tempo/traces  # Local storage for traces
-
-overrides:
-  max_traces_per_user: 100000
 `
-	return []byte(fmt.Sprintf(config, tempoApiPort))
+	return []byte(fmt.Sprintf(config, tempoApiPort, tempoOtlpHttpPort, tempoOtlpGrpcPort))
 }

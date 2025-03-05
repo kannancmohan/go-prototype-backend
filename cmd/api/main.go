@@ -23,7 +23,7 @@ func main() {
 	appConf := &app.AppConf[testAppEnvVar]{Name: "test-app"} //TODO ensure mandatory fields(eg Name) are available
 	logger := log_impl.NewSimpleSlogLogger(log_impl.INFO)
 
-	tracer, shutdown, err := app_trace.NewOTelTracerProvider(app_trace.OpenTelemetryConfig{Host: "localhost",
+	tp, shutdown, err := app_trace.NewOTelTracerProvider(app_trace.OpenTelemetryConfig{Host: "localhost",
 		Port:        3200,
 		ConnType:    app_trace.OTelConnTypeHTTP,
 		ServiceName: appConf.Name,
@@ -42,7 +42,7 @@ func main() {
 			Logger: logger,
 			TracingConfig: apprunner.TracingConfig{
 				Enabled:        true,
-				TracerProvider: tracer,
+				TracerProvider: tp,
 			},
 		},
 		appConf)
