@@ -14,6 +14,7 @@ import (
 	log_impl "github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/common/log"
 	app_trace "github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/common/trace"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/common/log"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -87,9 +88,14 @@ func (t *testApp) Run(ctx context.Context) error {
 	defer t.mu.Unlock()
 
 	mux := http.NewServeMux()
-	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "main-handler: %s\n", r.URL.Query().Get("name"))
-	}))
+	})
+
+	// using otelhttp.NewHandler to automatically extract trace context(if any) from incoming request
+	// and to add this extracted trace context to the request’s context.Context
+	mux.Handle("/", otelhttp.NewHandler(testHandler, "handle-request"))
+
 	t.server = &http.Server{
 		Addr:              fmt.Sprintf(":%d", t.port),
 		Handler:           mux,

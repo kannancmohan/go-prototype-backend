@@ -33,7 +33,7 @@ func (p *testTempoContainer) Start(ctx context.Context) error {
 	defer cancel()
 
 	req := testcontainers.ContainerRequest{
-		Image: tempoImage,
+		Image:        tempoImage,
 		Cmd:          []string{"-config.file=" + tempoConfigPath},
 		ExposedPorts: []string{tempoExposedApiPort, tempoExposedOTLPGrpcPort, tempoExposedOTLPHttpPort},
 		WaitingFor:   wait.ForLog("Tempo started").WithStartupTimeout(30 * time.Second),
