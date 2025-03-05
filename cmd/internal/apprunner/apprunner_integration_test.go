@@ -9,10 +9,16 @@ import (
 
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/app"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/apprunner"
+	log_impl "github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/common/log"
+	app_trace "github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/common/trace"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/common/log"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/testutils"
 	tc_testutils "github.com/kannancmohan/go-prototype-backend-apps-temp/internal/testutils/testcontainers"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 func TestAppRunnerMetricsIntegration(t *testing.T) {
@@ -49,7 +55,7 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 			Path:            "/metrics",
 			ShutdownTimeout: 5 * time.Second,
 		},
-		Logger:   log.NewSimpleSlogLogger(""),
+		Logger:   log_impl.NewSimpleSlogLogger(log_impl.INFO),
 		ExitWait: 5 * time.Second,
 	}
 
@@ -84,9 +90,92 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 	promUrl := fmt.Sprintf("http://%s/api/v1/query?query=example_app_requests_total", containerAddr.Address)
 	_, err = testutils.RetryHTTPGetRequest(promUrl, "example_app_requests_total", http.StatusOK, 5, retryDelay)
 	if err != nil {
-		t.Error("expected prometheus response, received error instead.", err.Error())
+		t.Error("expected 'example_app_requests_total' in prometheus response, received error instead.", err.Error())
 	}
 
+}
+
+const (
+	tracerTestTagName  = "handler.id"
+	tracerTestTagValue = "tracer-int-test-service-dev_test_handler"
+)
+
+func TestAppRunnerTracerIntegration(t *testing.T) {
+
+	port, err := testutils.GetFreePorts(1)
+	if err != nil {
+		t.Fatalf("failed to get free ports: %v", err)
+	}
+
+	appPort := port[0]
+	ctx := context.Background()
+
+	tempo := tc_testutils.NewTempoContainer()
+	err = tempo.Start(ctx)
+	if err != nil {
+		t.Fatalf("failed to start grafana-tempo container : %v", err)
+	}
+	defer tempo.Stop(context.Background())
+
+	tempoOtlpHttpAddr, err := tempo.GetContainerOTLPHttpAddress(ctx)
+	if err != nil {
+		t.Fatalf("failed to get grafana-tempo container otlp-http address: %v", err)
+	}
+
+	tempoApiAddr, err := tempo.GetContainerApiAddress(ctx)
+	if err != nil {
+		t.Fatalf("failed to get grafana-tempo container api address: %v", err)
+	}
+
+	tp, shutdown, err := app_trace.NewOTelTracerProvider(app_trace.OpenTelemetryConfig{Host: tempoOtlpHttpAddr.Host,
+		Port:        tempoOtlpHttpAddr.Port,
+		ConnType:    app_trace.OTelConnTypeHTTP,
+		ServiceName: "tracer-int-test-service-dev"},
+	)
+	if err != nil {
+		panic(fmt.Errorf("error creating otel tracer provider: %w", err))
+	}
+	defer shutdown(context.Background())
+
+	config := apprunner.AppRunnerConfig{
+		MetricsServerConfig: app.MetricsServerAppConfig{
+			Enabled: false,
+		},
+		Logger: log_impl.NewSimpleSlogLogger(log_impl.INFO),
+		TracingConfig: apprunner.TracingConfig{
+			Enabled:        true,
+			TracerProvider: tp,
+		},
+		ExitWait: 5 * time.Second,
+	}
+
+	runner, _ := apprunner.NewAppRunner(NewExampleApp(appPort), config, app.EmptyAppConf)
+	defer runner.StopApps()
+
+	go func() {
+		runCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+		defer cancel()
+		if err := runner.Run(runCtx); err != nil {
+			t.Logf("AppRunner failed: %v", err)
+		}
+	}()
+
+	if err := testutils.WaitForPort(appPort, 15*time.Second); err != nil {
+		t.Fatalf("failed waiting for app port: %v", err)
+	}
+
+	retryDelay := 2 * time.Second
+	appUrl := fmt.Sprintf("http://%s:%d/", "localhost", appPort)
+	_, err = testutils.RetryHTTPGetRequest(appUrl, "", http.StatusOK, 2, retryDelay)
+	if err != nil {
+		t.Error("expected app response, received error instead.", err.Error())
+	}
+
+	tempoSearchUrl := fmt.Sprintf("http://%s/api/v2/search/tag/.%s/values", tempoApiAddr.Address, tracerTestTagName)
+	_, err = testutils.RetryHTTPGetRequest(tempoSearchUrl, tracerTestTagValue, http.StatusOK, 10, retryDelay)
+	if err != nil {
+		t.Error("expected given value in tempo response, received error instead.", err.Error())
+	}
 }
 
 type exampleApp struct {
@@ -94,6 +183,7 @@ type exampleApp struct {
 	server         *http.Server
 	requestCounter prometheus.Counter
 	log            log.Logger
+	tracer         trace.Tracer
 }
 
 func NewExampleApp(port int) *exampleApp {
@@ -110,10 +200,15 @@ func NewExampleApp(port int) *exampleApp {
 
 func (e *exampleApp) Run(ctx context.Context) error {
 	mux := http.NewServeMux()
-	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer e.newOTELSpan(ctx, "test-handler", tracerTestTagName, tracerTestTagValue).End()
+
 		e.requestCounter.Inc() //increment prometheus counter metrics
-		fmt.Fprintf(w, "main-handler: %s\n", r.URL.Query().Get("name"))
-	}))
+		fmt.Fprintf(w, "test-handler: %s\n", r.URL.Query().Get("name"))
+	})
+
+	//mux.Handle("/", otelhttp.NewHandler(testHandler, "handle-request"))
+	mux.Handle("/", testHandler)
 	e.server = &http.Server{
 		Addr:              fmt.Sprintf(":%d", e.port),
 		Handler:           mux,
@@ -152,4 +247,19 @@ func (e *exampleApp) PrometheusCollectors() []prometheus.Collector {
 
 func (e *exampleApp) SetLogger(logger log.Logger) {
 	e.log = logger
+}
+
+func (e *exampleApp) SetTracer(tracer trace.Tracer) {
+	e.tracer = tracer
+}
+
+func (e *exampleApp) newOTELSpan(ctx context.Context, spanName, spanAttName, spanAttValue string) trace.Span {
+	if e.tracer == nil {
+		_, span := noop.NewTracerProvider().Tracer("").Start(ctx, spanName)
+		return span // Return a no-op span
+	}
+	_, span := e.tracer.Start(ctx, spanName, trace.WithSpanKind(trace.SpanKindServer))
+	span.SetAttributes(attribute.String(spanAttName, spanAttValue))
+
+	return span
 }

@@ -11,13 +11,27 @@ import (
 
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/app"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/apprunner"
+	log_impl "github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/common/log"
+	app_trace "github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/common/trace"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/common/log"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func main() {
 
-	appConf := &app.AppConf[testAppEnvVar]{Name: "test"}
-	logger := log.NewSimpleSlogLogger("info")
+	appConf := &app.AppConf[testAppEnvVar]{Name: "test-app"} //TODO ensure mandatory fields(eg Name) are available
+	logger := log_impl.NewSimpleSlogLogger(log_impl.INFO)
+
+	tp, shutdown, err := app_trace.NewOTelTracerProvider(app_trace.OpenTelemetryConfig{Host: "localhost",
+		Port:        3200,
+		ConnType:    app_trace.OTelConnTypeHTTP,
+		ServiceName: appConf.Name,
+	})
+	if err != nil {
+		panic(fmt.Errorf("error creating otel tracer provider: %w", err))
+	}
+	defer shutdown(context.Background())
 
 	runner, err := apprunner.NewAppRunner(NewTestApp(9933),
 		apprunner.AppRunnerConfig{
@@ -26,6 +40,10 @@ func main() {
 				Enabled: true,
 			},
 			Logger: logger,
+			TracingConfig: apprunner.TracingConfig{
+				Enabled:        true,
+				TracerProvider: tp,
+			},
 		},
 		appConf)
 	if err != nil {
@@ -60,8 +78,9 @@ type testApp struct {
 	shutdownTimeout time.Duration
 	server          *http.Server
 	log             log.Logger
-	mu              sync.Mutex
 	appConf         *app.AppConf[testAppEnvVar]
+	tracer          trace.Tracer
+	mu              sync.Mutex
 }
 
 func (t *testApp) Run(ctx context.Context) error {
@@ -69,9 +88,14 @@ func (t *testApp) Run(ctx context.Context) error {
 	defer t.mu.Unlock()
 
 	mux := http.NewServeMux()
-	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "main-handler: %s\n", r.URL.Query().Get("name"))
-	}))
+	})
+
+	// using otelhttp.NewHandler to automatically extract trace context(if any) from incoming request
+	// and to add this extracted trace context to the request’s context.Context
+	mux.Handle("/", otelhttp.NewHandler(testHandler, "handle-request"))
+
 	t.server = &http.Server{
 		Addr:              fmt.Sprintf(":%d", t.port),
 		Handler:           mux,
@@ -118,6 +142,10 @@ func (t *testApp) SetLogger(logger log.Logger) {
 
 func (t *testApp) SetAppConf(conf *app.AppConf[testAppEnvVar]) {
 	t.appConf = conf
+}
+
+func (t *testApp) SetTracer(tracer trace.Tracer) {
+	t.tracer = tracer
 }
 
 var _ app.Loggable = &testApp{}

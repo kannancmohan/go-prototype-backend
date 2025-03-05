@@ -9,6 +9,8 @@ import (
 
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/app"
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/common/log"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type AppRunnerConfig struct {
@@ -16,11 +18,18 @@ type AppRunnerConfig struct {
 	ExitWait            time.Duration              // Maximum duration to wait for apps to stop. (Need to set a value greater than 0 to take effect)
 	MetricsServerConfig app.MetricsServerAppConfig // Configuration for the metrics server
 	Logger              log.Logger
+	TracingConfig       TracingConfig
+}
+
+type TracingConfig struct {
+	Enabled        bool
+	TracerProvider trace.TracerProvider // Optional: Custom tracer provider
 }
 
 type appRunner struct {
 	apps     []app.App
 	log      log.Logger
+	tracer   trace.Tracer  // appRunner could trace its own operations(eg app start/stop)
 	exitWait time.Duration // Maximum duration to wait for apps to stop
 	mu       sync.Mutex    // Mutex to protect the apps slice
 }
@@ -63,10 +72,28 @@ func NewAppRunner[T any](mainApp app.App, config AppRunnerConfig, appConfig *app
 		}
 	}
 
+	// set tracing to appRunner and to apps that supports it
+	var appRunnerTracer trace.Tracer
+	if config.TracingConfig.Enabled {
+		tracerProvider := config.TracingConfig.TracerProvider
+		if tracerProvider == nil {
+			tracerProvider = otel.GetTracerProvider() // Use global tracer provider if none is provided
+		}
+		appRunnerTracer = tracerProvider.Tracer("apprunner")
+		for _, ap := range apps {
+			if traceable, ok := ap.(app.Traceable); ok {
+				tracerName := fmt.Sprintf("%T", ap)         // TODO set proper app name.
+				tracer := tracerProvider.Tracer(tracerName) //TODO do we need to set the name from here or allow apps to set it
+				traceable.SetTracer(tracer)
+			}
+		}
+	}
+
 	return &appRunner{
 		apps:     apps,
 		log:      config.Logger,
 		exitWait: config.ExitWait,
+		tracer:   appRunnerTracer,
 	}, nil
 }
 

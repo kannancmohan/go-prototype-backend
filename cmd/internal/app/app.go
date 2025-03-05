@@ -5,6 +5,7 @@ import (
 
 	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/common/log"
 	"github.com/prometheus/client_golang/prometheus"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var EmptyAppConf *AppConf[struct{}]
@@ -33,5 +34,11 @@ type Loggable interface {
 // AppConfigSetter . apps that need AppConf should implement this interface
 // appRunner will automatically set AppConf to apps that implement this interface
 type AppConfigSetter[T any] interface {
-	SetAppConf(conf *AppConf[T])
+	SetAppConf(*AppConf[T])
+}
+
+// Traceable . apps that need tracing should implement this interface
+// appRunner will automatically set tracing to apps that implement this interface
+type Traceable interface {
+	SetTracer(trace.Tracer)
 }

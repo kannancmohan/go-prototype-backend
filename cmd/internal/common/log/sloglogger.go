@@ -2,31 +2,41 @@ package log
 
 import (
 	"context"
+	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/common/log"
 	"log/slog"
 	"os"
 )
 
-var _ Logger = &slogLogger{}
+type Level string
+
+const (
+	DEBUG = Level("debug")
+	INFO  = Level("info")
+	WARN  = Level("warn")
+	ERROR = Level("error")
+)
+
+var _ log.Logger = &slogLogger{}
 
 type slogLogger struct {
 	logger *slog.Logger
 	ctx    context.Context
 }
 
-func NewSimpleSlogLogger(logLevelStr string) Logger {
-	if logLevelStr == ""{
-		return NewSlogLogger(slog.New(slog.NewJSONHandler(os.Stdout,&slog.HandlerOptions{})))
+func NewSimpleSlogLogger(logLevel Level) log.Logger {
+	if logLevel == "" {
+		return NewSlogLogger(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{})))
 	}
 
 	var level slog.Level
-	err := level.UnmarshalText([]byte(logLevelStr))
+	err := level.UnmarshalText([]byte(logLevel))
 	if err != nil {
-		return NewSlogLogger(slog.New(slog.NewJSONHandler(os.Stdout,&slog.HandlerOptions{})))
+		return NewSlogLogger(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{})))
 	}
 	return NewSlogLogger(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})))
 }
 
-func NewSlogLogger(logger *slog.Logger) Logger {
+func NewSlogLogger(logger *slog.Logger) log.Logger {
 	return &slogLogger{logger: logger}
 }
 
@@ -47,7 +57,7 @@ func (s *slogLogger) Error(msg string, args ...any) {
 }
 
 // With returns a new *SLogLogger with the provided key/value pairs attached
-func (s *slogLogger) With(args ...any) Logger {
+func (s *slogLogger) With(args ...any) log.Logger {
 	return &slogLogger{
 		logger: s.logger.With(args...),
 		ctx:    s.ctx,
@@ -56,7 +66,7 @@ func (s *slogLogger) With(args ...any) Logger {
 
 // WithContext returns an *SLogLogger which still points to the same underlying *slog.Logger,
 // but has the provided context attached for Debug, Info, Warn, and Error calls.
-func (s *slogLogger) WithContext(ctx context.Context) Logger {
+func (s *slogLogger) WithContext(ctx context.Context) log.Logger {
 	return &slogLogger{
 		logger: s.logger,
 		ctx:    ctx,
