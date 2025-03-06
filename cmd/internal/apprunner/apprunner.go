@@ -14,11 +14,11 @@ import (
 )
 
 type AppRunnerConfig struct {
-	AdditionalApps      []app.App                  // Additional apps to run
-	ExitWait            time.Duration              // Maximum duration to wait for apps to stop. (Need to set a value greater than 0 to take effect)
 	MetricsServerConfig app.MetricsServerAppConfig // Configuration for the metrics server
 	Logger              log.Logger
 	TracingConfig       TracingConfig
+	ExitWait            time.Duration // Maximum duration to wait for apps to stop. (Need to set a value greater than 0 to take effect)
+	AdditionalApps      []app.App     // Additional apps to run
 }
 
 type TracingConfig struct {

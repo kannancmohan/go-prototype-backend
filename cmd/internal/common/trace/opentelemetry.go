@@ -30,7 +30,9 @@ const (
 	OTelConnTypeHTTP = OTelConnType("http")
 )
 
-func NewOTelTracerProvider(cfg OpenTelemetryConfig) (*trace.TracerProvider, func(context.Context) error, error) {
+type OTelTracerProviderShutdown func(context.Context) error
+
+func NewOTelTracerProvider(cfg OpenTelemetryConfig) (*trace.TracerProvider, OTelTracerProviderShutdown, error) {
 	if cfg.Host == "" || cfg.Port == 0 || cfg.ServiceName == "" {
 		return nil, nil, errors.New("invalid OpenTelemetry configuration: Host, Port, and ServiceName are required")
 	}
