@@ -19,7 +19,7 @@ func WaitForPort(port int, timeout time.Duration) error {
 			return nil
 		}
 		if time.Since(start) > timeout {
-			return fmt.Errorf("port %d did not become ready within %v", port, timeout)
+			return fmt.Errorf("timed out[%v] waiting for port%d", timeout, port)
 		}
 		time.Sleep(100 * time.Millisecond) // Polling interval
 	}
