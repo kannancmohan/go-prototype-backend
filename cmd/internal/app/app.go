@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/kannancmohan/go-prototype-backend/internal/common/log"
 	"github.com/prometheus/client_golang/prometheus"
@@ -9,6 +10,13 @@ import (
 )
 
 var EmptyAppConf *AppConf[struct{}]
+
+func NewAppConf[T any](appName string, envVar T) (*AppConf[T], error) {
+	if appName == "" {
+		return nil, fmt.Errorf("mandatory fled 'appName' missing ")
+	}
+	return &AppConf[T]{Name: appName, EnvVar: envVar}, nil
+}
 
 type AppConf[T any] struct {
 	Name   string
