@@ -39,7 +39,7 @@ func NewAppRunner[T any](mainApp app.App, config AppRunnerConfig, appConfig *app
 		return nil, fmt.Errorf("mainApp cannot be nil")
 	}
 
-	// if logger is not available, setting it to NoOpLogger which does nothing when its method are called
+	// if logger is not available, set it to NoOpLogger which does nothing when its method are called
 	if config.Logger == nil {
 		config.Logger = &log.NoOpLogger{}
 	}
@@ -50,9 +50,9 @@ func NewAppRunner[T any](mainApp app.App, config AppRunnerConfig, appConfig *app
 		apps = append(apps, config.AdditionalApps...)
 	}
 
-	// register the metrics collectors from apps that supports it
 	if config.MetricsServerConfig.Enabled {
 		metricsApp := app.NewMetricsServerApp(config.MetricsServerConfig)
+		// register the metrics collectors from apps that supports it
 		for _, ap := range apps {
 			if provider, ok := ap.(app.MetricsSetter); ok {
 				collectors := provider.PrometheusCollectors()
@@ -62,7 +62,7 @@ func NewAppRunner[T any](mainApp app.App, config AppRunnerConfig, appConfig *app
 		apps = append(apps, metricsApp)
 	}
 
-	// set the logger and appConf into each app that supports it
+	// set the logger and appConf to apps that supports it
 	for _, ap := range apps {
 		if loggableApp, ok := ap.(app.Loggable); ok {
 			loggableApp.SetLogger(config.Logger)
@@ -72,7 +72,7 @@ func NewAppRunner[T any](mainApp app.App, config AppRunnerConfig, appConfig *app
 		}
 	}
 
-	// set tracing to appRunner and to apps that supports it
+	// set tracing to apps that supports it
 	var appRunnerTracer trace.Tracer
 	if config.TracingConfig.Enabled {
 		tracerProvider := config.TracingConfig.TracerProvider
@@ -160,7 +160,7 @@ func (ar *appRunner) StopApps() error {
 		close(done)
 	}()
 
-	// Wait for all apps to stop or for the ExitWait timeout
+	// Wait for all apps to stop or for context with ExitWait to timeout
 	select {
 	case <-done: // All apps stopped
 		return err

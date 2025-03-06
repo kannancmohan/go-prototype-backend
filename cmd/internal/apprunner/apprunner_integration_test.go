@@ -1,3 +1,4 @@
+//go:build !skip_integration_tests
 package apprunner_test
 
 import (
