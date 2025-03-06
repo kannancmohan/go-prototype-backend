@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/app"
-	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/common/log"
+	"github.com/kannancmohan/go-prototype-backend/cmd/internal/app"
+	"github.com/kannancmohan/go-prototype-backend/internal/common/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 )

@@ -2,9 +2,10 @@ package log
 
 import (
 	"context"
-	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/common/log"
 	"log/slog"
 	"os"
+
+	"github.com/kannancmohan/go-prototype-backend/internal/common/log"
 )
 
 type Level string

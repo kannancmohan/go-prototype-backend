@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 
-	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/common/log"
+	"github.com/kannancmohan/go-prototype-backend/internal/common/log"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/otel/trace"
 )
