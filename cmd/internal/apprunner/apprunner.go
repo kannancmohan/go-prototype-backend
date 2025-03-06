@@ -67,8 +67,10 @@ func NewAppRunner[T any](mainApp app.App, config AppRunnerConfig, appConfig *app
 		if loggableApp, ok := ap.(app.Loggable); ok {
 			loggableApp.SetLogger(config.Logger)
 		}
-		if configurableApp, ok := ap.(app.AppConfigSetter[T]); ok {
-			configurableApp.SetAppConf(appConfig)
+		if appConfig != nil {
+			if configurableApp, ok := ap.(app.AppConfigSetter[T]); ok {
+				configurableApp.SetAppConf(appConfig)
+			}
 		}
 	}
 
