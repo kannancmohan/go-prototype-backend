@@ -13,29 +13,29 @@ import (
 	"github.com/kannancmohan/go-prototype-backend/cmd/internal/apprunner"
 )
 
-// MockApp is a mock implementation of the App interface for testing.
-type MockApp struct {
+// mockApp is a mock implementation of the App interface for testing.
+type mockApp struct {
 	appConf  app.AppConf[any]
 	RunFunc  func(ctx context.Context) error
 	StopFunc func(ctx context.Context) error
 }
 
-func (m *MockApp) Run(ctx context.Context) error {
+func (m *mockApp) Run(ctx context.Context) error {
 	return m.RunFunc(ctx)
 }
 
-func (m *MockApp) Stop(ctx context.Context) error {
+func (m *mockApp) Stop(ctx context.Context) error {
 	return m.StopFunc(ctx)
 }
 
-func (m *MockApp) SetAppConf(conf app.AppConf[any]) {
+func (m *mockApp) SetAppConf(conf app.AppConf[any]) {
 	m.appConf = conf
 }
 
 func TestAppRunner_Run(t *testing.T) {
 	tests := []struct {
 		name        string
-		mainApp     *MockApp
+		mainApp     *mockApp
 		config      apprunner.AppRunnerConfig
 		ctxTimeout  time.Duration
 		expectError bool
@@ -43,7 +43,7 @@ func TestAppRunner_Run(t *testing.T) {
 	}{
 		{
 			name: "Successful Run",
-			mainApp: &MockApp{
+			mainApp: &mockApp{
 				RunFunc: func(ctx context.Context) error {
 					<-ctx.Done()
 					return nil
@@ -63,7 +63,7 @@ func TestAppRunner_Run(t *testing.T) {
 		},
 		{
 			name: "App Failure",
-			mainApp: &MockApp{
+			mainApp: &mockApp{
 				RunFunc: func(ctx context.Context) error {
 					return errors.New("mock app failed")
 				},
@@ -83,7 +83,7 @@ func TestAppRunner_Run(t *testing.T) {
 		},
 		{
 			name: "Metrics Server Enabled",
-			mainApp: &MockApp{
+			mainApp: &mockApp{
 				RunFunc: func(ctx context.Context) error {
 					<-ctx.Done()
 					return nil
@@ -106,7 +106,7 @@ func TestAppRunner_Run(t *testing.T) {
 		},
 		{
 			name: "Additional Apps",
-			mainApp: &MockApp{
+			mainApp: &mockApp{
 				RunFunc: func(ctx context.Context) error {
 					<-ctx.Done()
 					return nil
@@ -120,7 +120,7 @@ func TestAppRunner_Run(t *testing.T) {
 					Enabled: false,
 				},
 				AdditionalApps: []app.App{
-					&MockApp{
+					&mockApp{
 						RunFunc: func(ctx context.Context) error {
 							<-ctx.Done()
 							return nil
@@ -164,7 +164,7 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 
 	tests := []struct {
 		name            string
-		mainApp         *MockApp
+		mainApp         *mockApp
 		config          apprunner.AppRunnerConfig
 		inputAppConf    app.AppConf[any]
 		ctxTimeout      time.Duration
@@ -172,7 +172,7 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 	}{
 		{
 			name: "Successful Run",
-			mainApp: &MockApp{
+			mainApp: &mockApp{
 				RunFunc: func(ctx context.Context) error {
 					<-ctx.Done()
 					return nil
@@ -193,7 +193,7 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 		},
 		{
 			name: "Successful Run - With empty AppConf",
-			mainApp: &MockApp{
+			mainApp: &mockApp{
 				RunFunc: func(ctx context.Context) error {
 					<-ctx.Done()
 					return nil
