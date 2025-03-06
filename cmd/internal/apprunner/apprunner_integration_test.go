@@ -61,7 +61,7 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 		ExitWait: 5 * time.Second,
 	}
 
-	runner, _ := apprunner.NewAppRunner(NewExampleApp(appPort), config, app.EmptyAppConf)
+	runner, _ := apprunner.NewAppRunner(newTestApp(appPort), config, app.EmptyAppConf)
 	defer runner.StopApps()
 
 	go func() {
@@ -89,10 +89,10 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 		t.Error("expected metrics response, received error instead.", err.Error())
 	}
 
-	promUrl := fmt.Sprintf("http://%s/api/v1/query?query=example_app_requests_total", containerAddr.Address)
-	_, err = testutils.RetryHTTPGetRequest(promUrl, "example_app_requests_total", http.StatusOK, 5, retryDelay)
+	promUrl := fmt.Sprintf("http://%s/api/v1/query?query=test_app_requests_total", containerAddr.Address)
+	_, err = testutils.RetryHTTPGetRequest(promUrl, "test_app_requests_total", http.StatusOK, 5, retryDelay)
 	if err != nil {
-		t.Error("expected 'example_app_requests_total' in prometheus response, received error instead.", err.Error())
+		t.Error("expected 'test_app_requests_total' in prometheus response, received error instead.", err.Error())
 	}
 
 }
@@ -151,7 +151,7 @@ func TestAppRunnerTracerIntegration(t *testing.T) {
 		ExitWait: 5 * time.Second,
 	}
 
-	runner, _ := apprunner.NewAppRunner(NewExampleApp(appPort), config, app.EmptyAppConf)
+	runner, _ := apprunner.NewAppRunner(newTestApp(appPort), config, app.EmptyAppConf)
 	defer runner.StopApps()
 
 	go func() {
@@ -180,7 +180,7 @@ func TestAppRunnerTracerIntegration(t *testing.T) {
 	}
 }
 
-type exampleApp struct {
+type testApp struct {
 	port           int
 	server         *http.Server
 	requestCounter prometheus.Counter
@@ -188,19 +188,19 @@ type exampleApp struct {
 	tracer         trace.Tracer
 }
 
-func NewExampleApp(port int) *exampleApp {
-	return &exampleApp{
+func newTestApp(port int) *testApp {
+	return &testApp{
 		port: port,
 		requestCounter: prometheus.NewCounter(
 			prometheus.CounterOpts{
-				Name: "example_app_requests_total",
-				Help: "Total number of requests processed by the example app.",
+				Name: "test_app_requests_total",
+				Help: "Total number of requests processed by the test app.",
 			},
 		),
 	}
 }
 
-func (e *exampleApp) Run(ctx context.Context) error {
+func (e *testApp) Run(ctx context.Context) error {
 	mux := http.NewServeMux()
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer e.newOTELSpan(ctx, "test-handler", tracerTestTagName, tracerTestTagValue).End()
@@ -218,7 +218,7 @@ func (e *exampleApp) Run(ctx context.Context) error {
 	}
 	errCh := make(chan error, 1)
 	go func() {
-		e.log.Info("starting example app", "port", e.port)
+		e.log.Info("starting test app", "port", e.port)
 		if err := e.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errCh <- fmt.Errorf("test server failed: %w", err)
 		}
@@ -231,7 +231,7 @@ func (e *exampleApp) Run(ctx context.Context) error {
 	return nil
 }
 
-func (e *exampleApp) Stop(ctx context.Context) error {
+func (e *testApp) Stop(ctx context.Context) error {
 	if e.server == nil {
 		return nil // Server was never started
 	}
@@ -243,19 +243,19 @@ func (e *exampleApp) Stop(ctx context.Context) error {
 	return nil
 }
 
-func (e *exampleApp) PrometheusCollectors() []prometheus.Collector {
+func (e *testApp) PrometheusCollectors() []prometheus.Collector {
 	return []prometheus.Collector{e.requestCounter}
 }
 
-func (e *exampleApp) SetLogger(logger log.Logger) {
+func (e *testApp) SetLogger(logger log.Logger) {
 	e.log = logger
 }
 
-func (e *exampleApp) SetTracer(tracer trace.Tracer) {
+func (e *testApp) SetTracer(tracer trace.Tracer) {
 	e.tracer = tracer
 }
 
-func (e *exampleApp) newOTELSpan(ctx context.Context, spanName, spanAttName, spanAttValue string) trace.Span {
+func (e *testApp) newOTELSpan(ctx context.Context, spanName, spanAttName, spanAttValue string) trace.Span {
 	if e.tracer == nil {
 		_, span := noop.NewTracerProvider().Tracer("").Start(ctx, spanName)
 		return span // Return a no-op span
