@@ -1,4 +1,4 @@
-# go-prototype-backend-apps-temp
+# go-prototype-backend
 A prototype to build golang backend app's. It has the following integration ootb
 * metrics - a metrics server that exposes an endpoint to be used by prometheus
 * tracing - integration with grafana tempo to export trace data
@@ -29,7 +29,7 @@ A prototype to build golang backend app's. It has the following integration ootb
 
 #### Init the module 
 ```
-go mod init github.com/kannancmohan/go-prototype-backend-apps-temp
+go mod init github.com/kannancmohan/go-prototype-backend
 ```
 
 #### [optional] Init air for hot reloading

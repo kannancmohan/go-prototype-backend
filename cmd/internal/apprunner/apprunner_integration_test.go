@@ -1,4 +1,5 @@
 //go:build !skip_integration_tests
+
 package apprunner_test
 
 import (
@@ -8,13 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/app"
-	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/apprunner"
-	log_impl "github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/common/log"
-	app_trace "github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/common/trace"
-	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/common/log"
-	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/testutils"
-	tc_testutils "github.com/kannancmohan/go-prototype-backend-apps-temp/internal/testutils/testcontainers"
+	"github.com/kannancmohan/go-prototype-backend/cmd/internal/app"
+	"github.com/kannancmohan/go-prototype-backend/cmd/internal/apprunner"
+	log_impl "github.com/kannancmohan/go-prototype-backend/cmd/internal/common/log"
+	app_trace "github.com/kannancmohan/go-prototype-backend/cmd/internal/common/trace"
+	"github.com/kannancmohan/go-prototype-backend/internal/common/log"
+	"github.com/kannancmohan/go-prototype-backend/internal/testutils"
+	tc_testutils "github.com/kannancmohan/go-prototype-backend/internal/testutils/testcontainers"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"go.opentelemetry.io/otel/attribute"

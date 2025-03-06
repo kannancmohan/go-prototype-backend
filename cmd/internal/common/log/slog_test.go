@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"testing"
 
-	log_impl "github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/common/log"
-	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/common/log"
+	log_impl "github.com/kannancmohan/go-prototype-backend/cmd/internal/common/log"
+	"github.com/kannancmohan/go-prototype-backend/internal/common/log"
 )
 
 func TestSlogLogger(t *testing.T) {

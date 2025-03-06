@@ -9,11 +9,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/app"
-	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/apprunner"
-	log_impl "github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/common/log"
-	app_trace "github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/common/trace"
-	"github.com/kannancmohan/go-prototype-backend-apps-temp/internal/common/log"
+	"github.com/kannancmohan/go-prototype-backend/cmd/internal/app"
+	"github.com/kannancmohan/go-prototype-backend/cmd/internal/apprunner"
+	log_impl "github.com/kannancmohan/go-prototype-backend/cmd/internal/common/log"
+	app_trace "github.com/kannancmohan/go-prototype-backend/cmd/internal/common/trace"
+	"github.com/kannancmohan/go-prototype-backend/internal/common/log"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/trace"
 )

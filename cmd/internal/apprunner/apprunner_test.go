@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/app"
-	"github.com/kannancmohan/go-prototype-backend-apps-temp/cmd/internal/apprunner"
+	"github.com/kannancmohan/go-prototype-backend/cmd/internal/app"
+	"github.com/kannancmohan/go-prototype-backend/cmd/internal/apprunner"
 )
 
 // MockApp is a mock implementation of the App interface for testing.
