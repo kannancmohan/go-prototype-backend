@@ -264,7 +264,7 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 		t.Error("expected given value in tempo response, received error instead.", err.Error())
 	}
 
-	cancel() // Cancel the context to signal the apps to shut down
+	cancel()  // Cancel the context to signal the apps to shut down
 	wg.Wait() // Wait for the apps to shut down
 
 }
@@ -297,25 +297,27 @@ func (e *testApp) Run(ctx context.Context) error {
 	mux := http.NewServeMux()
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		//adding some additional attributes to tracing
+		span := trace.SpanFromContext(r.Context())
+		span.SetAttributes(attribute.String(tracerTestTagName, e.name+tracerTestTagValuePostfix))
 
-		defer e.newOTELSpan(ctx, "test-handler", tracerTestTagName, e.name+tracerTestTagValuePostfix).End()
+		e.log.Info("Incoming request", "app", e.name, "TraceID", span.SpanContext().TraceID(), "SpanID", span.SpanContext().SpanID())
 
 		if e.requestCounter != nil {
 			e.requestCounter.Inc() //increment prometheus counter metrics
 		}
 
 		if e.service != nil {
-			resp, _ := e.service.invokeExternalService()
-			//e.log.Info("invoked test-handler with external service", "app", e.name, "externalResp", resp)
+			resp, _ := e.service.invokeExternalService(r.Context())
+			e.log.Debug("invoked test-handler with external service", "app", e.name, "externalResp", resp)
 			fmt.Fprintf(w, "invoked test-handler in %s with external service resp: %s", e.name, resp)
 		} else {
-			//e.log.Info("invoked test-handler", "app", e.name)
+			e.log.Debug("invoked test-handler", "app", e.name)
 			fmt.Fprintf(w, "invoked test-handler in %s", e.name)
 		}
 	})
 
 	mux.Handle("/", otelhttp.NewHandler(testHandler, "handle-request"))
-	//mux.Handle("/", testHandler)
 	e.server = &http.Server{
 		Addr:              fmt.Sprintf(":%d", e.port),
 		Handler:           mux,
@@ -372,7 +374,7 @@ func (e *testApp) newOTELSpan(ctx context.Context, spanName, spanAttName, spanAt
 }
 
 type testService interface {
-	invokeExternalService() (string, error)
+	invokeExternalService(context.Context) (string, error)
 }
 
 func newSimpleTestService(externalServicePort int) simpleTestService {
@@ -387,11 +389,11 @@ func newSimpleTestService(externalServicePort int) simpleTestService {
 
 type simpleTestService struct {
 	externalPort int
-	httpClient *http.Client
+	httpClient   *http.Client
 }
 
-func (t simpleTestService) invokeExternalService() (string, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/", t.externalPort), nil)
+func (t simpleTestService) invokeExternalService(ctx context.Context) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://localhost:%d/", t.externalPort), nil)
 	if err != nil {
 		return "", fmt.Errorf("Failed to create HTTP request: %w", err)
 	}
@@ -410,7 +412,7 @@ func (t simpleTestService) invokeExternalService() (string, error) {
 }
 
 const (
-	tracerTestTagName  = "handler.id"
+	tracerTestTagName         = "handler.id"
 	tracerTestTagValuePostfix = "_simple-service__test-handler"
 )
 

@@ -81,7 +81,9 @@ func NewOTelTracerProvider(cfg OpenTelemetryConfig) (*trace.TracerProvider, OTel
 		trace.WithResource(res),
 	)
 
-	//otel.SetTracerProvider(tp)// Set the global TracerProvider
+	//need to set the tp as global trace provider so that otelhttp.NewHandler can automatically extract/create trace context for incoming request
+	//Instead of setting it globally, it can be also be via otelhttp.WithTracerProvider(tp) when configuring otelhttp.NewHandler
+	otel.SetTracerProvider(tp) // Set the global TracerProvider
 
 	// Sets the global propagator to W3C TraceContext format
 	// 'otel.SetTextMapPropagator' defines how tracing context (trace ID, span ID, etc.) is injected and extracted from HTTP headers
