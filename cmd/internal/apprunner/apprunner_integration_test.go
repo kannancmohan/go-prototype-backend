@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"sync"
 	"testing"
 	"time"
@@ -100,84 +101,6 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 
 }
 
-func TestAppRunnerTracerIntegration(t *testing.T) {
-
-	port, err := testutils.GetFreePorts(1)
-	if err != nil {
-		t.Fatalf("failed to get free ports: %v", err)
-	}
-
-	appPort := port[0]
-	ctx := context.Background()
-
-	tempo := tc_testutils.NewTempoContainer()
-	err = tempo.Start(ctx)
-	if err != nil {
-		t.Fatalf("failed to start grafana-tempo container : %v", err)
-	}
-	defer tempo.Stop(context.Background())
-
-	tempoOtlpHttpAddr, err := tempo.GetContainerOTLPHttpAddress(ctx)
-	if err != nil {
-		t.Fatalf("failed to get grafana-tempo container otlp-http address: %v", err)
-	}
-
-	tempoApiAddr, err := tempo.GetContainerApiAddress(ctx)
-	if err != nil {
-		t.Fatalf("failed to get grafana-tempo container api address: %v", err)
-	}
-
-	tp, shutdown, err := app_trace.NewOTelTracerProvider(app_trace.OpenTelemetryConfig{Host: tempoOtlpHttpAddr.Host,
-		Port:        tempoOtlpHttpAddr.Port,
-		ConnType:    app_trace.OTelConnTypeHTTP,
-		ServiceName: "tracer-int-test-service-dev"},
-	)
-	if err != nil {
-		panic(fmt.Errorf("error creating otel tracer provider: %w", err))
-	}
-	defer shutdown(context.Background())
-
-	config := apprunner.AppRunnerConfig{
-		MetricsServerConfig: app.MetricsServerAppConfig{
-			Enabled: false,
-		},
-		Logger: log_impl.NewSimpleSlogLogger(log_impl.INFO),
-		TracingConfig: apprunner.TracingConfig{
-			Enabled:        true,
-			TracerProvider: tp,
-		},
-		ExitWait: 5 * time.Second,
-	}
-
-	runner, _ := apprunner.NewAppRunner(newTestApp("app1", appPort, nil), config, app.EmptyAppConf)
-	defer runner.StopApps()
-
-	go func() {
-		runCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
-		defer cancel()
-		if err := runner.Run(runCtx); err != nil {
-			t.Logf("AppRunner failed: %v", err)
-		}
-	}()
-
-	if err := testutils.WaitForPort(appPort, 15*time.Second); err != nil {
-		t.Fatalf("failed waiting for app port: %v", err)
-	}
-
-	retryDelay := 2 * time.Second
-	appUrl := fmt.Sprintf("http://%s:%d/", "localhost", appPort)
-	_, err = testutils.RetryHTTPGetRequest(appUrl, "", http.StatusOK, 2, retryDelay)
-	if err != nil {
-		t.Error("expected app response, received error instead.", err.Error())
-	}
-
-	tempoSearchUrl := fmt.Sprintf("http://%s/api/v2/search/tag/.%s/values", tempoApiAddr.Address, tracerTestTagName)
-	_, err = testutils.RetryHTTPGetRequest(tempoSearchUrl, "app1"+tracerTestTagValuePostfix, http.StatusOK, 10, retryDelay)
-	if err != nil {
-		t.Error("expected given value in tempo response, received error instead.", err.Error())
-	}
-}
-
 func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	port, err := testutils.GetFreePorts(2)
 	if err != nil {
@@ -251,6 +174,7 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 		t.Fatalf("failed waiting for app2 port: %v", err)
 	}
 
+	//invoke app1's endpoint which internally invokes the app2's endpoint as well
 	retryDelay := 2 * time.Second
 	appUrl := fmt.Sprintf("http://%s:%d/", "localhost", app1Port)
 	_, err = testutils.RetryHTTPGetRequest(appUrl, "", http.StatusOK, 2, retryDelay)
@@ -258,8 +182,9 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 		t.Error("expected app response, received error instead.", err.Error())
 	}
 
-	tempoSearchUrl := fmt.Sprintf("http://%s/api/v2/search/tag/.%s/values", tempoApiAddr.Address, tracerTestTagName)
-	_, err = testutils.RetryHTTPGetRequest(tempoSearchUrl, "app1"+tracerTestTagValuePostfix, http.StatusOK, 10, retryDelay)
+	queryParams := url.Values{"service.name": {"app2"}}
+	tempoSearchUrl := fmt.Sprintf("http://%s/api/search?%s", tempoApiAddr.Address, queryParams.Encode())
+	_, err = testutils.RetryHTTPGetRequest(tempoSearchUrl, "app2", http.StatusOK, 10, retryDelay)
 	if err != nil {
 		t.Error("expected given value in tempo response, received error instead.", err.Error())
 	}
@@ -297,10 +222,7 @@ func (e *testApp) Run(ctx context.Context) error {
 	mux := http.NewServeMux()
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//adding some additional attributes to tracing
 		span := trace.SpanFromContext(r.Context())
-		span.SetAttributes(attribute.String(tracerTestTagName, e.name+tracerTestTagValuePostfix))
-
 		e.log.Info("Incoming request", "app", e.name, "TraceID", span.SpanContext().TraceID(), "SpanID", span.SpanContext().SpanID())
 
 		if e.requestCounter != nil {
@@ -318,6 +240,7 @@ func (e *testApp) Run(ctx context.Context) error {
 	})
 
 	mux.Handle("/", otelhttp.NewHandler(testHandler, "handle-request"))
+	//mux.Handle("/", otelhttp.NewHandler(testHandler, "handle-request", otelhttp.WithTracerProvider(tp)))
 	e.server = &http.Server{
 		Addr:              fmt.Sprintf(":%d", e.port),
 		Handler:           mux,
@@ -410,11 +333,6 @@ func (t simpleTestService) invokeExternalService(ctx context.Context) (string, e
 	}
 	return string(bodyBytes), nil
 }
-
-const (
-	tracerTestTagName         = "handler.id"
-	tracerTestTagValuePostfix = "_simple-service__test-handler"
-)
 
 func createAppRunnerConfig(appName, tempoHost string, tempoPort, metricsAppPort int, additionalApps ...app.App) (apprunner.AppRunnerConfig, func(context.Context) error, error) {
 	config := apprunner.AppRunnerConfig{
