@@ -44,8 +44,8 @@ func (t *simpleApp) Run(ctx context.Context) error {
 		fmt.Fprintf(w, "main-handler: %s\n", r.URL.Query().Get("name"))
 	})
 
-	// using otelhttp.NewHandler to automatically extract trace context(if any) from incoming request
-	// and to add this extracted trace context to the request’s context.Context
+	// otelhttp.NewHandler will automatically extract the tracing context from an incoming request if present and creates a new span
+	// as a child of the existing trace. It automatically creates a new trace ID and span if the request does not have tracing context
 	mux.Handle("/", otelhttp.NewHandler(simpleHandler, "handle-request"))
 
 	t.server = &http.Server{
