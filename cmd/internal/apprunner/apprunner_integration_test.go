@@ -183,22 +183,22 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	queryParams := url.Values{"service.name": {"app1"}}
 	tempoSearchUrl := fmt.Sprintf("http://%s/api/search?%s", tempoApiAddr.Address, queryParams.Encode())
 
-	resp, err := testutils.RetryGetReqForJson[tempoSearchBySvcNameResp](tempoSearchUrl, "app1", http.StatusOK, 10, retryDelay)
+	searchResp, err := testutils.RetryGetReqForJson[searchBySvcNameResp](tempoSearchUrl, "app1", http.StatusOK, 10, retryDelay)
 	if err != nil {
 		t.Error("expected given value in tempo response, received error instead.", err.Error())
 	}
-	if resp == nil || len(resp.Traces) < 1 || resp.Traces[0].TraceID == "" {
-		t.Error("expected a valid json response with traceID in tempo response, instead received resp.", resp)
+	if searchResp == nil || len(searchResp.Traces) < 1 || searchResp.Traces[0].TraceID == "" {
+		t.Error("expected a valid json response with traceID in tempo response, instead received resp.", searchResp)
 	}
 
-	traceID := resp.Traces[0].TraceID
+	traceID := searchResp.Traces[0].TraceID
 	getByTraceIDUrl := fmt.Sprintf("http://%s/api/traces/%s", tempoApiAddr.Address, traceID)
-	traceResp, err := testutils.RetryGetReqForJson[tempoGetTraceByIDResp](getByTraceIDUrl, "app1", http.StatusOK, 10, retryDelay)
+	traceResp, err := testutils.RetryGetReqForJson[getTraceByIDResp](getByTraceIDUrl, "app1", http.StatusOK, 10, retryDelay)
 	if err != nil {
 		t.Errorf("expected a valid json response for the given traceID:%q, received error instead.%v", traceID, err.Error())
 	}
-	if traceResp == nil || len(traceResp.Batches) < 1 {
-		t.Error("expected a valid json response for the given traceID, instead received resp.", traceResp)
+	if len(traceResp.Batches) != 2 {
+		t.Error("expected 2 trace batches(one for each app) for the given distributed traceID, instead received resp.", traceResp)
 	}
 
 	cancel()  // Cancel the context to signal the apps to shut down
@@ -367,7 +367,7 @@ func createAppRunnerConfig(tracerSvcName, tracerHost string, tracerPort, metrics
 	return config, func(ctx context.Context) error { return nil }, nil
 }
 
-type tempoSearchBySvcNameResp struct {
+type searchBySvcNameResp struct {
 	Traces []struct {
 		TraceID         string `json:"traceID"`
 		RootServiceName string `json:"rootServiceName"`
@@ -375,7 +375,7 @@ type tempoSearchBySvcNameResp struct {
 	} `json:"traces"`
 }
 
-type tempoGetTraceByIDResp struct {
+type getTraceByIDResp struct {
 	Batches []struct {
 		Resource struct {
 			Attributes []struct {
