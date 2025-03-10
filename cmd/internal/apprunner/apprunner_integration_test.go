@@ -22,9 +22,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
-	"go.opentelemetry.io/otel/trace/noop"
 )
 
 func TestAppRunnerMetricsIntegration(t *testing.T) {
@@ -182,9 +180,9 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 		t.Error("expected app response, received error instead.", err.Error())
 	}
 
-	queryParams := url.Values{"service.name": {"app2"}}
+	queryParams := url.Values{"service.name": {"app1"}}
 	tempoSearchUrl := fmt.Sprintf("http://%s/api/search?%s", tempoApiAddr.Address, queryParams.Encode())
-	_, err = testutils.RetryHTTPGetRequest(tempoSearchUrl, "app2", http.StatusOK, 10, retryDelay)
+	_, err = testutils.RetryHTTPGetRequest(tempoSearchUrl, "app1", http.StatusOK, 10, retryDelay)
 	if err != nil {
 		t.Error("expected given value in tempo response, received error instead.", err.Error())
 	}
@@ -200,7 +198,7 @@ type testApp struct {
 	server         *http.Server
 	requestCounter prometheus.Counter
 	log            log.Logger
-	tracer         trace.Tracer
+	tp             trace.TracerProvider
 	service        testService
 }
 
@@ -239,8 +237,8 @@ func (e *testApp) Run(ctx context.Context) error {
 		}
 	})
 
-	mux.Handle("/", otelhttp.NewHandler(testHandler, "handle-request"))
-	//mux.Handle("/", otelhttp.NewHandler(testHandler, "handle-request", otelhttp.WithTracerProvider(tp)))
+	mux.Handle("/", otelhttp.NewHandler(testHandler, e.name+"_handle-request", otelhttp.WithTracerProvider(e.tp)))
+	//mux.Handle("/", otelhttp.NewHandler(testHandler, "handle-request"))
 	e.server = &http.Server{
 		Addr:              fmt.Sprintf(":%d", e.port),
 		Handler:           mux,
@@ -281,19 +279,8 @@ func (e *testApp) SetLogger(logger log.Logger) {
 	e.log = logger
 }
 
-func (e *testApp) SetTracer(tracer trace.Tracer) {
-	e.tracer = tracer
-}
-
-func (e *testApp) newOTELSpan(ctx context.Context, spanName, spanAttName, spanAttValue string) trace.Span {
-	if e.tracer == nil {
-		_, span := noop.NewTracerProvider().Tracer("").Start(ctx, spanName)
-		return span // Return a no-op span
-	}
-	_, span := e.tracer.Start(ctx, spanName, trace.WithSpanKind(trace.SpanKindServer))
-	span.SetAttributes(attribute.String(spanAttName, spanAttValue))
-
-	return span
+func (e *testApp) SetTracerProvider(tp trace.TracerProvider) {
+	e.tp = tp
 }
 
 type testService interface {
@@ -334,7 +321,7 @@ func (t simpleTestService) invokeExternalService(ctx context.Context) (string, e
 	return string(bodyBytes), nil
 }
 
-func createAppRunnerConfig(appName, tempoHost string, tempoPort, metricsAppPort int, additionalApps ...app.App) (apprunner.AppRunnerConfig, func(context.Context) error, error) {
+func createAppRunnerConfig(tracerSvcName, tracerHost string, tracerPort, metricsAppPort int, additionalApps ...app.App) (apprunner.AppRunnerConfig, func(context.Context) error, error) {
 	config := apprunner.AppRunnerConfig{
 		Logger:         log_impl.NewSimpleSlogLogger(log_impl.INFO),
 		ExitWait:       5 * time.Second,
@@ -346,11 +333,11 @@ func createAppRunnerConfig(appName, tempoHost string, tempoPort, metricsAppPort 
 			Port:    metricsAppPort,
 		}
 	}
-	if tempoHost != "" && tempoPort > 0 {
-		tp, shutdown, err := app_trace.NewOTelTracerProvider(app_trace.OpenTelemetryConfig{Host: tempoHost,
-			Port:        tempoPort,
+	if tracerHost != "" && tracerPort > 0 {
+		tp, shutdown, err := app_trace.NewOTelTracerProvider(app_trace.OpenTelemetryConfig{Host: tracerHost,
+			Port:        tracerPort,
 			ConnType:    app_trace.OTelConnTypeHTTP,
-			ServiceName: appName},
+			ServiceName: tracerSvcName},
 		)
 		if err != nil {
 			return config, nil, err
