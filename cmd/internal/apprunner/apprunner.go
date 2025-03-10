@@ -81,12 +81,10 @@ func NewAppRunner[T any](mainApp app.App, config AppRunnerConfig, appConfig *app
 		if tracerProvider == nil {
 			tracerProvider = otel.GetTracerProvider() // Use global tracer provider if none is provided
 		}
-		appRunnerTracer = tracerProvider.Tracer("apprunner")
+		appRunnerTracer = tracerProvider.Tracer("apprunner") //creating a tracer for appRunner in case it needs to add tracing
 		for _, ap := range apps {
 			if traceable, ok := ap.(app.Traceable); ok {
-				tracerName := fmt.Sprintf("%T", ap)         // TODO set proper app name.
-				tracer := tracerProvider.Tracer(tracerName) //TODO do we need to set the name from here or allow apps to set it
-				traceable.SetTracer(tracer)
+				traceable.SetTracerProvider(tracerProvider)
 			}
 		}
 	}

@@ -46,7 +46,7 @@ type AppConfigSetter[T any] interface {
 }
 
 // Traceable . apps that need tracing should implement this interface
-// appRunner will automatically set tracing to apps that implement this interface
+// appRunner will automatically set TracerProvider to apps that implement this interface
 type Traceable interface {
-	SetTracer(trace.Tracer)
+	SetTracerProvider(trace.TracerProvider)
 }

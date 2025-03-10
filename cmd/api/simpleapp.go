@@ -31,7 +31,7 @@ type simpleApp struct {
 	server          *http.Server
 	log             log.Logger
 	appConf         *app.AppConf[simpleAppEnvVar]
-	tracer          trace.Tracer
+	tp              trace.TracerProvider
 	mu              sync.Mutex
 }
 
@@ -96,8 +96,8 @@ func (t *simpleApp) SetAppConf(conf *app.AppConf[simpleAppEnvVar]) {
 	t.appConf = conf
 }
 
-func (t *simpleApp) SetTracer(tracer trace.Tracer) {
-	t.tracer = tracer
+func (t *simpleApp) SetTracerProvider(tp trace.TracerProvider) {
+	t.tp = tp
 }
 
 var _ app.Loggable = &simpleApp{}
