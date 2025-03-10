@@ -198,7 +198,7 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 		t.Errorf("expected a valid json response for the given traceID:%q, received error instead.%v", traceID, err.Error())
 	}
 	if len(traceResp.Batches) != 2 {
-		t.Error("expected 2 trace batches(one for each app) for the given distributed traceID, instead received resp.", traceResp)
+		t.Error("expected 2 trace resources(one for each app) for the given distributed traceID, instead received.", len(traceResp.Batches))
 	}
 
 	cancel()  // Cancel the context to signal the apps to shut down
