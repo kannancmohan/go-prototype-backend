@@ -1,6 +1,8 @@
 package testutils
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -25,7 +27,8 @@ func WaitForPort(port int, timeout time.Duration) error {
 	}
 }
 
-func RetryHTTPGetRequest(url, expectedString string, expectedStatusCode, maxRetries int, retryDelay time.Duration) (string, error) {
+// RetryGetReq is a generic function that performs an HTTP GET request with retries.
+func RetryGetReq(url, expectedString string, expectedStatusCode, maxRetries int, retryDelay time.Duration) (string, error) {
 	client := &http.Client{}
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
@@ -61,6 +64,52 @@ func RetryHTTPGetRequest(url, expectedString string, expectedStatusCode, maxRetr
 		time.Sleep(retryDelay)
 	}
 	return "", fmt.Errorf("max retries reached")
+}
+
+// RetryGetReqForJson is a generic function that performs an HTTP GET request with retries.
+// It checks if the JSON response contains a specific field and returns the marshaled JSON according to the generic type T.
+func RetryGetReqForJson[T any](url, expectedField string, expectedStatusCode, maxRetries int, retryDelay time.Duration) (*T, error) {
+	client := &http.Client{}
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		req, err := http.NewRequest(http.MethodGet, url, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create HTTP request: %w", err)
+		}
+
+		resp, err := client.Do(req)
+		if err != nil || resp.StatusCode != expectedStatusCode {
+			time.Sleep(retryDelay)
+			continue
+		}
+		defer resp.Body.Close()
+
+		// Read the response body
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			time.Sleep(retryDelay)
+			continue
+		}
+
+		// Check if the JSON contains the expected field
+		if expectedField != "" {
+			if !bytes.Contains(body, []byte(`"`+expectedField+`"`)) {
+				time.Sleep(retryDelay)
+				continue
+			}
+		}
+
+		// Unmarshal the JSON into the generic type T
+		var result T
+		if err := json.Unmarshal(body, &result); err != nil {
+			time.Sleep(retryDelay)
+			continue
+		}
+
+		return &result, nil
+	}
+
+	return nil, fmt.Errorf("max retries reached")
 }
 
 func GetFreePorts(numPorts int) ([]int, error) {

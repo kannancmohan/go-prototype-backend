@@ -17,6 +17,8 @@ func (s SpanAttKeyValue) getKeyValue() (string, string) {
 	return "", ""
 }
 
+// NewOTELSpan. can be used in func for tracing
+// It should be place as first line of function. eg usage "defer trace.NewOTELSpan(ctx,tracer,"user.create").End()"
 func NewOTELSpan(ctx context.Context, tracer trace.Tracer, spanName string, spanAttributes ...SpanAttKeyValue) trace.Span {
 	if tracer == nil {
 		_, span := noop.NewTracerProvider().Tracer("").Start(ctx, spanName)

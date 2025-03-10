@@ -80,19 +80,19 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 
 	retryDelay := 2 * time.Second
 	appUrl := fmt.Sprintf("http://%s:%d/", appHost, appPort)
-	_, err = testutils.RetryHTTPGetRequest(appUrl, "", http.StatusOK, 2, retryDelay)
+	_, err = testutils.RetryGetReq(appUrl, "", http.StatusOK, 2, retryDelay)
 	if err != nil {
 		t.Error("expected app response, received error instead.", err.Error())
 	}
 
 	metricsAppUrl := fmt.Sprintf("http://%s:%d/metrics", appHost, metricsAppPort)
-	_, err = testutils.RetryHTTPGetRequest(metricsAppUrl, "", http.StatusOK, 2, retryDelay)
+	_, err = testutils.RetryGetReq(metricsAppUrl, "", http.StatusOK, 2, retryDelay)
 	if err != nil {
 		t.Error("expected metrics response, received error instead.", err.Error())
 	}
 
 	promUrl := fmt.Sprintf("http://%s/api/v1/query?query=test_app_requests_total", containerAddr.Address)
-	_, err = testutils.RetryHTTPGetRequest(promUrl, "test_app_requests_total", http.StatusOK, 5, retryDelay)
+	_, err = testutils.RetryGetReq(promUrl, "test_app_requests_total", http.StatusOK, 5, retryDelay)
 	if err != nil {
 		t.Error("expected 'test_app_requests_total' in prometheus response, received error instead.", err.Error())
 	}
@@ -175,16 +175,30 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	//invoke app1's endpoint which internally invokes the app2's endpoint as well
 	retryDelay := 2 * time.Second
 	appUrl := fmt.Sprintf("http://%s:%d/", "localhost", app1Port)
-	_, err = testutils.RetryHTTPGetRequest(appUrl, "", http.StatusOK, 2, retryDelay)
+	_, err = testutils.RetryGetReq(appUrl, "", http.StatusOK, 2, retryDelay)
 	if err != nil {
 		t.Error("expected app response, received error instead.", err.Error())
 	}
 
 	queryParams := url.Values{"service.name": {"app1"}}
 	tempoSearchUrl := fmt.Sprintf("http://%s/api/search?%s", tempoApiAddr.Address, queryParams.Encode())
-	_, err = testutils.RetryHTTPGetRequest(tempoSearchUrl, "app1", http.StatusOK, 10, retryDelay)
+
+	resp, err := testutils.RetryGetReqForJson[tempoSearchBySvcNameResp](tempoSearchUrl, "app1", http.StatusOK, 10, retryDelay)
 	if err != nil {
 		t.Error("expected given value in tempo response, received error instead.", err.Error())
+	}
+	if resp == nil || len(resp.Traces) < 1 || resp.Traces[0].TraceID == "" {
+		t.Error("expected a valid json response with traceID in tempo response, instead received resp.", resp)
+	}
+
+	traceID := resp.Traces[0].TraceID
+	getByTraceIDUrl := fmt.Sprintf("http://%s/api/traces/%s", tempoApiAddr.Address, traceID)
+	traceResp, err := testutils.RetryGetReqForJson[tempoGetTraceByIDResp](getByTraceIDUrl, "app1", http.StatusOK, 10, retryDelay)
+	if err != nil {
+		t.Errorf("expected a valid json response for the given traceID:%q, received error instead.%v", traceID, err.Error())
+	}
+	if traceResp == nil || len(traceResp.Batches) < 1 {
+		t.Error("expected a valid json response for the given traceID, instead received resp.", traceResp)
 	}
 
 	cancel()  // Cancel the context to signal the apps to shut down
@@ -351,4 +365,38 @@ func createAppRunnerConfig(tracerSvcName, tracerHost string, tracerPort, metrics
 	}
 
 	return config, func(ctx context.Context) error { return nil }, nil
+}
+
+type tempoSearchBySvcNameResp struct {
+	Traces []struct {
+		TraceID         string `json:"traceID"`
+		RootServiceName string `json:"rootServiceName"`
+		RootTraceName   string `json:"rootTraceName"`
+	} `json:"traces"`
+}
+
+type tempoGetTraceByIDResp struct {
+	Batches []struct {
+		Resource struct {
+			Attributes []struct {
+				Key   string `json:"key"`
+				Value struct {
+					StringValue string `json:"stringValue"`
+				} `json:"value"`
+			} `json:"attributes"`
+		} `json:"resource"`
+		ScopeSpans []struct {
+			Scope struct {
+				Name    string `json:"name"`
+				Version string `json:"version"`
+			} `json:"scope"`
+			Spans []struct {
+				TraceID      string `json:"traceId"`
+				SpanID       string `json:"spanId"`
+				ParentSpanID string `json:"parentSpanId,omitempty"`
+				Name         string `json:"name"`
+				Kind         string `json:"kind,omitempty"`
+			} `json:"spans"`
+		} `json:"scopeSpans"`
+	} `json:"batches"`
 }
