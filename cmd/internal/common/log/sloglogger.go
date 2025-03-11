@@ -2,10 +2,12 @@ package log
 
 import (
 	"context"
+	"io"
 	"log/slog"
 	"os"
 
 	"github.com/kannancmohan/go-prototype-backend/internal/common/log"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Level string
@@ -24,21 +26,24 @@ type slogLogger struct {
 	ctx    context.Context
 }
 
-func NewSimpleSlogLogger(logLevel Level) log.Logger {
+func NewSimpleSlogLogger(logLevel Level, writer io.Writer, customHandlers ...func(slog.Handler) slog.Handler) log.Logger {
+	if writer == nil {
+		writer = os.Stdout
+	}
+	var handler slog.Handler
 	if logLevel == "" {
-		return NewSlogLogger(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{})))
+		handler = slog.NewJSONHandler(writer, &slog.HandlerOptions{})
+	} else {
+		var level slog.Level
+		_ = level.UnmarshalText([]byte(logLevel)) //TODO handler error
+		handler = slog.NewJSONHandler(writer, &slog.HandlerOptions{Level: level})
+	}
+	// Apply custom handlers in sequence
+	for _, customHandler := range customHandlers {
+		handler = customHandler(handler)
 	}
 
-	var level slog.Level
-	err := level.UnmarshalText([]byte(logLevel))
-	if err != nil {
-		return NewSlogLogger(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{})))
-	}
-	return NewSlogLogger(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})))
-}
-
-func NewSlogLogger(logger *slog.Logger) log.Logger {
-	return &slogLogger{logger: logger}
+	return &slogLogger{logger: slog.New(handler)}
 }
 
 func (s *slogLogger) Debug(msg string, args ...any) {
@@ -72,4 +77,73 @@ func (s *slogLogger) WithContext(ctx context.Context) log.Logger {
 		logger: s.logger,
 		ctx:    ctx,
 	}
+}
+
+//custom slog handler to automatically add traceID to log
+
+var traceIDKey = "traceID"
+
+type traceIDHandler struct {
+	nextHandler slog.Handler
+}
+
+func NewTraceIDHandler(nextHandler slog.Handler) *traceIDHandler {
+	return &traceIDHandler{nextHandler: nextHandler}
+}
+
+func (h *traceIDHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	return h.nextHandler.Enabled(ctx, level)
+}
+
+func (h *traceIDHandler) Handle(ctx context.Context, record slog.Record) error {
+	// Extract traceId from the OpenTelemetry context
+	spanContext := trace.SpanContextFromContext(ctx)
+	if spanContext.HasTraceID() {
+		record.Add(traceIDKey, slog.StringValue(spanContext.TraceID().String()))
+	}
+	return h.nextHandler.Handle(ctx, record)
+}
+
+func (h *traceIDHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return NewTraceIDHandler(h.nextHandler.WithAttrs(attrs))
+}
+
+func (h *traceIDHandler) WithGroup(name string) slog.Handler {
+	return NewTraceIDHandler(h.nextHandler.WithGroup(name))
+}
+
+// custom handler to add custom attribute (e.g., requestID) to log.
+type CustomAttrHandler struct {
+	nextHandler slog.Handler
+	attrKey     string
+	ctxKey      any
+}
+
+func NewCustomAttrHandler(handler slog.Handler, attrKey string, ctxKey any) *CustomAttrHandler {
+	return &CustomAttrHandler{
+		nextHandler: handler,
+		attrKey:     attrKey,
+		ctxKey:      ctxKey,
+	}
+}
+
+func (h *CustomAttrHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	return h.nextHandler.Enabled(ctx, level)
+}
+
+func (h *CustomAttrHandler) Handle(ctx context.Context, record slog.Record) error {
+	// Extract the custom value from the context
+	if value, ok := ctx.Value(h.ctxKey).(string); ok {
+		//record.Add(h.attrKey, slog.StringValue(value))
+		record.AddAttrs(slog.Any(h.attrKey, value))
+	}
+	return h.nextHandler.Handle(ctx, record)
+}
+
+func (h *CustomAttrHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return NewCustomAttrHandler(h.nextHandler.WithAttrs(attrs), h.attrKey, h.ctxKey)
+}
+
+func (h *CustomAttrHandler) WithGroup(name string) slog.Handler {
+	return NewCustomAttrHandler(h.nextHandler.WithGroup(name), h.attrKey, h.ctxKey)
 }
