@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"sync"
@@ -59,7 +60,7 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 			Path:            "/metrics",
 			ShutdownTimeout: 5 * time.Second,
 		},
-		Logger:   log_impl.NewSimpleSlogLogger(log_impl.INFO),
+		Logger:   log_impl.NewSimpleSlogLogger(log_impl.INFO, nil),
 		ExitWait: 5 * time.Second,
 	}
 
@@ -234,8 +235,7 @@ func (e *testApp) Run(ctx context.Context) error {
 	mux := http.NewServeMux()
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		span := trace.SpanFromContext(r.Context())
-		e.log.Info("Incoming request", "app", e.name, "TraceID", span.SpanContext().TraceID(), "SpanID", span.SpanContext().SpanID())
+		e.log.WithContext(r.Context()).Info("Incoming request", "app", e.name)
 
 		if e.requestCounter != nil {
 			e.requestCounter.Inc() //increment prometheus counter metrics
@@ -337,7 +337,9 @@ func (t simpleTestService) invokeExternalService(ctx context.Context) (string, e
 
 func createAppRunnerConfig(tracerSvcName, tracerHost string, tracerPort, metricsAppPort int, additionalApps ...app.App) (apprunner.AppRunnerConfig, func(context.Context) error, error) {
 	config := apprunner.AppRunnerConfig{
-		Logger:         log_impl.NewSimpleSlogLogger(log_impl.INFO),
+		Logger: log_impl.NewSimpleSlogLogger(log_impl.INFO, nil, func(h slog.Handler) slog.Handler {
+			return log_impl.NewTraceIDHandler(h)
+		}),
 		ExitWait:       5 * time.Second,
 		AdditionalApps: additionalApps,
 	}

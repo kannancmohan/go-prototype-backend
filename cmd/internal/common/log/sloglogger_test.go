@@ -62,7 +62,7 @@ func TestSlogLogger(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			logger := log_impl.NewSlogLogger(slog.New(slog.NewJSONHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug})))
+			logger := log_impl.NewSimpleSlogLogger(log_impl.DEBUG, &buf)
 			tt.loggerMethod(logger, tt.inputMsg, tt.inputArgs...)
 
 			var logOutput map[string]any
@@ -84,7 +84,9 @@ func TestSlogLogger(t *testing.T) {
 }
 
 func TestSlogLoggerWithContext(t *testing.T) {
-	// Define test cases
+	type contextKey string
+	const testContextKey contextKey = "testContextKey1"
+
 	tests := []struct {
 		name                 string
 		loggerMethod         func(logger log.Logger, msg string, args ...any)
@@ -116,8 +118,9 @@ func TestSlogLoggerWithContext(t *testing.T) {
 			var buf bytes.Buffer
 
 			ctx := context.WithValue(context.Background(), tt.inputContextArgs[0], tt.inputContextArgs[1])
-			slogHandler := newTestSlogHandler(string(testContextKey), slog.NewJSONHandler(&buf, nil))
-			logger := log_impl.NewSlogLogger(slog.New(slogHandler))
+			logger := log_impl.NewSimpleSlogLogger(log_impl.DEBUG, &buf, func(h slog.Handler) slog.Handler {
+				return log_impl.NewCustomAttrHandler(h, string(testContextKey), testContextKey)
+			})
 			loggerWithContext := logger.WithContext(ctx)
 
 			tt.loggerMethod(loggerWithContext, tt.inputMsg, tt.inputArgs...)
@@ -146,7 +149,6 @@ func TestSlogLoggerWithContext(t *testing.T) {
 }
 
 func TestSlogLoggerWith(t *testing.T) {
-	// Define test cases
 	tests := []struct {
 		name              string
 		loggerMethod      func(logger log.Logger, msg string, args ...any)
@@ -177,7 +179,7 @@ func TestSlogLoggerWith(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
 
-			logger := log_impl.NewSlogLogger(slog.New(slog.NewJSONHandler(&buf, nil)))
+			logger := log_impl.NewSimpleSlogLogger(log_impl.DEBUG, &buf)
 			loggerWithFields := logger.With(tt.inputWithArgs...)
 
 			tt.loggerMethod(loggerWithFields, tt.inputMsg, tt.inputArgs...)
@@ -202,43 +204,5 @@ func TestSlogLoggerWith(t *testing.T) {
 				t.Errorf("expected additional field %q=%q, got %q=%q", tt.expectedWithKey, tt.expectedWithValue, tt.expectedWithKey, logOutput[tt.expectedWithKey])
 			}
 		})
-	}
-}
-
-type contextKey string
-
-const testContextKey contextKey = "testContextKey1"
-
-// testSlogHandler. custom slog handler to include value from context
-type testSlogHandler struct {
-	logKey string
-	next   slog.Handler
-}
-
-func newTestSlogHandler(logKey string, next slog.Handler) *testSlogHandler {
-	return &testSlogHandler{logKey: logKey, next: next}
-}
-
-func (r *testSlogHandler) Enabled(ctx context.Context, lvl slog.Level) bool {
-	return r.next.Enabled(ctx, lvl)
-}
-
-func (r *testSlogHandler) Handle(ctx context.Context, rec slog.Record) error {
-	val, ok := ctx.Value(testContextKey).(string)
-	if ok {
-		rec.AddAttrs(slog.Any(r.logKey, val))
-	}
-	return r.next.Handle(ctx, rec)
-}
-
-func (r *testSlogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return &testSlogHandler{
-		next: r.next.WithAttrs(attrs),
-	}
-}
-
-func (r *testSlogHandler) WithGroup(name string) slog.Handler {
-	return &testSlogHandler{
-		next: r.next.WithGroup(name),
 	}
 }
