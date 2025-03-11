@@ -134,7 +134,6 @@ func (h *CustomAttrHandler) Enabled(ctx context.Context, level slog.Level) bool 
 func (h *CustomAttrHandler) Handle(ctx context.Context, record slog.Record) error {
 	// Extract the custom value from the context
 	if value, ok := ctx.Value(h.ctxKey).(string); ok {
-		//record.Add(h.attrKey, slog.StringValue(value))
 		record.AddAttrs(slog.Any(h.attrKey, value))
 	}
 	return h.nextHandler.Handle(ctx, record)
