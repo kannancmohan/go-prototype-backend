@@ -48,9 +48,9 @@ adjust the generated '.air.toml' file to accommodate project specif changes
      
      if you update the .envrc file on the fly, use command "direnv reload" to reload the env variables
 
-#### API App Build & Execution
+#### App Build & Execution
 
-##### Build API App
+##### Build App
 ```
 make build
 or
@@ -76,4 +76,33 @@ go test -v ./...
 make test-skip-integration-tests
 or
 go test -v -tags skip_integration_tests ./...
+```
+
+#### Configuring Tracing 
+##### Adding tracing to incoming http request 
+Ensure that the TracerProvider is set globally or set in the handler 
+
+Setting TracerProvider globally 
+```
+otel.SetTracerProvider(tp)
+```
+
+or
+
+Setting TracerProvider in handler
+```
+otelhttp.NewHandler(yourHandler, "handle-request")
+```
+
+##### Adding tracing to outgoing http call
+Configure the http client to use otelhttp.NewTransport 
+```
+		httpClient: &http.Client{
+			Transport: otelhttp.NewTransport(http.DefaultTransport),
+		}
+```
+
+Ensure that the outgoing call request is created using context 
+```
+http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://localhost:%d/", t.externalPort), nil)
 ```
