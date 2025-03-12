@@ -52,7 +52,7 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 		t.Fatalf("failed to get prometheus container address: %v", err)
 	}
 
-	arConf := apprunner.NewAppRunnerConfig2(
+	arConf := apprunner.NewAppRunnerConfig(
 		apprunner.WithMetricsApp(app.MetricsServerAppConfig{Port: metricsAppPort}),
 		apprunner.WithLogger(log_impl.NewSimpleSlogLogger(log_impl.INFO, nil)),
 	)
@@ -327,8 +327,8 @@ func (t simpleTestService) invokeExternalService(ctx context.Context) (string, e
 	return string(bodyBytes), nil
 }
 
-func createAppRunnerConfig(tracerSvcName, tracerHost string, tracerPort, metricsAppPort int, additionalApps ...app.App) (apprunner.AppRunnerConfig2, func(context.Context) error, error) {
-	var config apprunner.AppRunnerConfig2
+func createAppRunnerConfig(tracerSvcName, tracerHost string, tracerPort, metricsAppPort int, additionalApps ...app.App) (apprunner.AppRunnerConfig, func(context.Context) error, error) {
+	var config apprunner.AppRunnerConfig
 	var tracerProvider trace.TracerProvider
 	var shutdown func(ctx context.Context) error = func(ctx context.Context) error { return nil }
 	var err error
@@ -345,20 +345,20 @@ func createAppRunnerConfig(tracerSvcName, tracerHost string, tracerPort, metrics
 		}
 	}
 
-	config = apprunner.NewAppRunnerConfig2(
+	config = apprunner.NewAppRunnerConfig(
 		apprunner.WithLogger(log_impl.NewSimpleSlogLogger(log_impl.INFO, nil, log_impl.NewTraceIDHandler)),
 		apprunner.WithAdditionalApps(additionalApps),
 		func() apprunner.Option { //wrapper function to conditionally set metricsApp if metricsAppPort > 0
 			if metricsAppPort > 0 {
 				return apprunner.WithMetricsApp(app.MetricsServerAppConfig{Port: metricsAppPort})
 			}
-			return func(*apprunner.AppRunnerConfig2) {}
+			return func(*apprunner.AppRunnerConfig) {}
 		}(),
 		func() apprunner.Option { //wrapper function to conditionally set tracerProvider if tracerProvider != nil
 			if tracerProvider != nil {
 				return apprunner.WithTracerProvider(tracerProvider)
 			}
-			return func(*apprunner.AppRunnerConfig2) {}
+			return func(*apprunner.AppRunnerConfig) {}
 		}(),
 	)
 

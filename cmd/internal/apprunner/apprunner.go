@@ -13,7 +13,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-type AppRunnerConfig2 struct {
+type AppRunnerConfig struct {
 	metricsApp     *app.MetricsServerApp
 	log            log.Logger
 	tracerProvider trace.TracerProvider
@@ -21,8 +21,8 @@ type AppRunnerConfig2 struct {
 	exitWait       time.Duration // Maximum duration to wait for apps to stop
 }
 
-func NewAppRunnerConfig2(opts ...Option) AppRunnerConfig2 {
-	config := AppRunnerConfig2{
+func NewAppRunnerConfig(opts ...Option) AppRunnerConfig {
+	config := AppRunnerConfig{
 		log:            &log.NoOpLogger{},
 		exitWait:       5 * time.Second,
 		tracerProvider: otel.GetTracerProvider(),
@@ -34,37 +34,38 @@ func NewAppRunnerConfig2(opts ...Option) AppRunnerConfig2 {
 
 }
 
-type Option func(*AppRunnerConfig2)
+type Option func(*AppRunnerConfig)
 
 func WithMetricsApp(cfg app.MetricsServerAppConfig) Option {
-	return func(a *AppRunnerConfig2) {
+	return func(a *AppRunnerConfig) {
 		a.metricsApp = app.NewMetricsServerApp(cfg)
 	}
 }
 
 func WithLogger(log log.Logger) Option {
-	return func(a *AppRunnerConfig2) {
+	return func(a *AppRunnerConfig) {
 		a.log = log
 	}
 }
 
 func WithTracerProvider(tp trace.TracerProvider) Option {
-	return func(a *AppRunnerConfig2) {
+	return func(a *AppRunnerConfig) {
 		a.tracerProvider = tp
 	}
 }
 
 func WithExitWait(exitWait time.Duration) Option {
-	return func(a *AppRunnerConfig2) {
+	return func(a *AppRunnerConfig) {
 		a.exitWait = exitWait
 	}
 }
 
 func WithAdditionalApps(apps []app.App) Option {
-	return func(a *AppRunnerConfig2) {
+	return func(a *AppRunnerConfig) {
 		a.additionalApps = apps
 	}
 }
+
 type appRunner struct {
 	apps     []app.App
 	log      log.Logger
@@ -73,8 +74,7 @@ type appRunner struct {
 	mu       sync.Mutex    // Mutex to protect the apps slice
 }
 
-
-func NewAppRunner[T any](mainApp app.App, arConfig AppRunnerConfig2, appsCommonConfig *app.AppConf[T]) (*appRunner, error) {
+func NewAppRunner[T any](mainApp app.App, arConfig AppRunnerConfig, appsCommonConfig *app.AppConf[T]) (*appRunner, error) {
 	if mainApp == nil {
 		return nil, fmt.Errorf("mainApp cannot be nil")
 	}

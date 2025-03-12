@@ -30,7 +30,7 @@ func main() {
 	}
 	defer shutdown(context.Background())
 
-	appRunnerConf := apprunner.NewAppRunnerConfig2(
+	appRunnerConf := apprunner.NewAppRunnerConfig(
 		apprunner.WithLogger(logger),
 		apprunner.WithMetricsApp(app.MetricsServerAppConfig{}),
 		apprunner.WithTracerProvider(tp),
