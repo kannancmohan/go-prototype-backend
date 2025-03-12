@@ -79,16 +79,14 @@ func (s *slogLogger) WithContext(ctx context.Context) log.Logger {
 	}
 }
 
-//custom slog handler to automatically add traceID to log
-
-var traceIDKey = "traceID"
-
+// custom slog handler to automatically add traceID to log
 type traceIDHandler struct {
+	traceIDKey  string
 	nextHandler slog.Handler
 }
 
-func NewTraceIDHandler(nextHandler slog.Handler) *traceIDHandler {
-	return &traceIDHandler{nextHandler: nextHandler}
+func NewTraceIDHandler(nextHandler slog.Handler) slog.Handler {
+	return &traceIDHandler{traceIDKey: "traceID", nextHandler: nextHandler}
 }
 
 func (h *traceIDHandler) Enabled(ctx context.Context, level slog.Level) bool {
@@ -99,7 +97,7 @@ func (h *traceIDHandler) Handle(ctx context.Context, record slog.Record) error {
 	// Extract traceId from the OpenTelemetry context
 	spanContext := trace.SpanContextFromContext(ctx)
 	if spanContext.HasTraceID() {
-		record.Add(traceIDKey, slog.StringValue(spanContext.TraceID().String()))
+		record.Add(h.traceIDKey, slog.StringValue(spanContext.TraceID().String()))
 	}
 	return h.nextHandler.Handle(ctx, record)
 }
@@ -119,7 +117,7 @@ type CustomAttrHandler struct {
 	ctxKey      any
 }
 
-func NewCustomAttrHandler(handler slog.Handler, attrKey string, ctxKey any) *CustomAttrHandler {
+func NewCustomAttrHandler(handler slog.Handler, attrKey string, ctxKey any) slog.Handler {
 	return &CustomAttrHandler{
 		nextHandler: handler,
 		attrKey:     attrKey,

@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"sync"
@@ -337,9 +336,7 @@ func (t simpleTestService) invokeExternalService(ctx context.Context) (string, e
 
 func createAppRunnerConfig(tracerSvcName, tracerHost string, tracerPort, metricsAppPort int, additionalApps ...app.App) (apprunner.AppRunnerConfig, func(context.Context) error, error) {
 	config := apprunner.AppRunnerConfig{
-		Logger: log_impl.NewSimpleSlogLogger(log_impl.INFO, nil, func(h slog.Handler) slog.Handler {
-			return log_impl.NewTraceIDHandler(h)
-		}),
+		Logger:         log_impl.NewSimpleSlogLogger(log_impl.INFO, nil, log_impl.NewTraceIDHandler),
 		ExitWait:       5 * time.Second,
 		AdditionalApps: additionalApps,
 	}
