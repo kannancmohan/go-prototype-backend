@@ -30,12 +30,13 @@ func main() {
 	}
 	defer shutdown(context.Background())
 
-	appRunnerConf := apprunner.NewAppRunnerConfig(
+	runner, err := apprunner.NewAppRunner(
+		NewSimpleApp(9933), 
+		appConf, 
 		apprunner.WithLogger(logger),
 		apprunner.WithMetricsApp(app.NewMetricsServerApp()),
 		apprunner.WithTracerProvider(tp),
 	)
-	runner, err := apprunner.NewAppRunner(NewSimpleApp(9933), appRunnerConf, appConf)
 	if err != nil {
 		panic(fmt.Errorf("error creating apprunner: %w", err))
 	}

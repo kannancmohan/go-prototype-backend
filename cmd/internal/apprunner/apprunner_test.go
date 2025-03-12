@@ -38,7 +38,7 @@ func TestAppRunner_Run(t *testing.T) {
 	tests := []struct {
 		name        string
 		mainApp     *mockApp
-		config      apprunner.AppRunnerConfig
+		config      []apprunner.AppRunnerOption
 		ctxTimeout  time.Duration
 		expectError bool
 		errorMsg    string
@@ -54,7 +54,7 @@ func TestAppRunner_Run(t *testing.T) {
 					return nil
 				},
 			},
-			config:      apprunner.NewAppRunnerConfig(),
+			config:      []apprunner.AppRunnerOption{},
 			ctxTimeout:  1 * time.Second,
 			expectError: false,
 		},
@@ -68,7 +68,7 @@ func TestAppRunner_Run(t *testing.T) {
 					return nil
 				},
 			},
-			config:      apprunner.NewAppRunnerConfig(),
+			config:      []apprunner.AppRunnerOption{},
 			ctxTimeout:  1 * time.Second,
 			expectError: true,
 			errorMsg:    "mock app failed",
@@ -84,7 +84,7 @@ func TestAppRunner_Run(t *testing.T) {
 					return nil
 				},
 			},
-			config:      apprunner.NewAppRunnerConfig(apprunner.WithMetricsApp(app.NewMetricsServerApp())),
+			config: []apprunner.AppRunnerOption{apprunner.WithMetricsApp(app.NewMetricsServerApp())},
 			ctxTimeout:  1 * time.Second,
 			expectError: false,
 		},
@@ -99,7 +99,7 @@ func TestAppRunner_Run(t *testing.T) {
 					return nil
 				},
 			},
-			config: apprunner.NewAppRunnerConfig(apprunner.WithAdditionalApps(
+			config: []apprunner.AppRunnerOption{apprunner.WithAdditionalApps(
 				[]app.App{
 					&mockApp{
 						RunFunc: func(ctx context.Context) error {
@@ -111,7 +111,7 @@ func TestAppRunner_Run(t *testing.T) {
 						},
 					},
 				},
-			)),
+			)},
 			ctxTimeout:  1 * time.Second,
 			expectError: false,
 		},
@@ -119,7 +119,7 @@ func TestAppRunner_Run(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			runner, _ := apprunner.NewAppRunner(tt.mainApp, tt.config, app.EmptyAppConf)
+			runner, _ := apprunner.NewAppRunner(tt.mainApp, app.EmptyAppConf, tt.config...)
 			ctx, cancel := context.WithTimeout(context.Background(), tt.ctxTimeout)
 			defer cancel()
 
@@ -145,7 +145,7 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 	tests := []struct {
 		name            string
 		mainApp         *mockApp
-		config          apprunner.AppRunnerConfig
+		config          []apprunner.AppRunnerOption
 		inputAppConf    *app.AppConf[any]
 		ctxTimeout      time.Duration
 		expectedAppConf *app.AppConf[any]
@@ -161,7 +161,7 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 					return nil
 				},
 			},
-			config:          apprunner.NewAppRunnerConfig(),
+			config:          []apprunner.AppRunnerOption{},
 			inputAppConf:    &app.AppConf[any]{Name: "test", EnvVar: struct{ EnvVarName1 string }{EnvVarName1: "EnvVarName1"}},
 			ctxTimeout:      1 * time.Second,
 			expectedAppConf: &app.AppConf[any]{Name: "test", EnvVar: struct{ EnvVarName1 string }{EnvVarName1: "EnvVarName1"}},
@@ -177,7 +177,7 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 					return nil
 				},
 			},
-			config:          apprunner.NewAppRunnerConfig(),
+			config:          []apprunner.AppRunnerOption{},
 			inputAppConf:    &app.AppConf[any]{},
 			ctxTimeout:      1 * time.Second,
 			expectedAppConf: &app.AppConf[any]{},
@@ -193,7 +193,7 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 					return nil
 				},
 			},
-			config:          apprunner.NewAppRunnerConfig(),
+			config:          []apprunner.AppRunnerOption{},
 			inputAppConf:    nil,
 			ctxTimeout:      1 * time.Second,
 			expectedAppConf: nil,
@@ -202,7 +202,7 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			runner, _ := apprunner.NewAppRunner(tt.mainApp, tt.config, tt.inputAppConf)
+			runner, _ := apprunner.NewAppRunner(tt.mainApp, tt.inputAppConf, tt.config...)
 			ctx, cancel := context.WithTimeout(context.Background(), tt.ctxTimeout)
 			defer cancel()
 
