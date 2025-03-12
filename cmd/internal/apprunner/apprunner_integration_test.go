@@ -53,7 +53,7 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 	}
 
 	arConf := apprunner.NewAppRunnerConfig(
-		apprunner.WithMetricsApp(app.MetricsServerAppConfig{Port: metricsAppPort}),
+		apprunner.WithMetricsApp(app.NewMetricsServerApp(app.WithPort(metricsAppPort))),
 		apprunner.WithLogger(log_impl.NewSimpleSlogLogger(log_impl.INFO, nil)),
 	)
 	runner, _ := apprunner.NewAppRunner(newTestApp("app1", appPort, nil), arConf, app.EmptyAppConf)
@@ -350,7 +350,7 @@ func createAppRunnerConfig(tracerSvcName, tracerHost string, tracerPort, metrics
 		apprunner.WithAdditionalApps(additionalApps),
 		func() apprunner.AppRunnerConfigOption { //wrapper function to conditionally set metricsApp if metricsAppPort > 0
 			if metricsAppPort > 0 {
-				return apprunner.WithMetricsApp(app.MetricsServerAppConfig{Port: metricsAppPort})
+				return apprunner.WithMetricsApp(app.NewMetricsServerApp(app.WithPort(metricsAppPort)))
 			}
 			return func(*apprunner.AppRunnerConfig) {}
 		}(),

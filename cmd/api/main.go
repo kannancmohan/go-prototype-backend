@@ -32,7 +32,7 @@ func main() {
 
 	appRunnerConf := apprunner.NewAppRunnerConfig(
 		apprunner.WithLogger(logger),
-		apprunner.WithMetricsApp(app.MetricsServerAppConfig{}),
+		apprunner.WithMetricsApp(app.NewMetricsServerApp()),
 		apprunner.WithTracerProvider(tp),
 	)
 	runner, err := apprunner.NewAppRunner(NewSimpleApp(9933), appRunnerConf, appConf)

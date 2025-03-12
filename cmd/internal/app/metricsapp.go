@@ -12,51 +12,67 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-type MetricsServerAppConfig struct {
-	Registerer      prometheus.Registerer
-	Gatherer        prometheus.Gatherer
-	Port            int
-	Path            string
-	ShutdownTimeout time.Duration // Timeout for graceful shutdown
-}
+// NewMetricsServerApp creates a new MetricsServerAppConfig with the given options.
+func NewMetricsServerApp(opts ...MetricsServerAppOption) *MetricsServerApp {
+	config := &MetricsServerApp{
+		registerer:      prometheus.DefaultRegisterer, // Default Prometheus registerer
+		gatherer:        prometheus.DefaultGatherer,   // Default Prometheus gatherer
+		port:            9090,                         // Default port
+		path:            "/metrics",                   // Default path
+		shutdownTimeout: 5 * time.Second,              // Default shutdown timeout
+	}
 
-func NewMetricsServerApp(cfg MetricsServerAppConfig) *MetricsServerApp {
-	if cfg.Registerer == nil {
-		cfg.Registerer = prometheus.DefaultRegisterer
+	for _, opt := range opts {
+		opt(config)
 	}
-	if cfg.Gatherer == nil {
-		cfg.Gatherer = prometheus.DefaultGatherer
-	}
-	if cfg.Port < 1 {
-		cfg.Port = 9090
-	}
-	if cfg.Path == "" {
-		cfg.Path = "/metrics"
-	}
-	if cfg.ShutdownTimeout == 0 {
-		cfg.ShutdownTimeout = 5 * time.Second
-	}
-	return &MetricsServerApp{
-		Registerer:      cfg.Registerer,
-		Gatherer:        cfg.Gatherer,
-		Port:            cfg.Port,
-		Path:            cfg.Path,
-		shutdownTimeout: cfg.ShutdownTimeout,
-	}
+
+	return config
 }
 
 var _ App = &MetricsServerApp{}
 var _ Loggable = &MetricsServerApp{}
 
 type MetricsServerApp struct {
-	Registerer      prometheus.Registerer
-	Gatherer        prometheus.Gatherer
-	Port            int
-	Path            string
+	registerer      prometheus.Registerer
+	gatherer        prometheus.Gatherer
+	port            int
+	path            string
 	shutdownTimeout time.Duration
 	server          *http.Server
 	log             log.Logger
 	mu              sync.Mutex
+}
+
+type MetricsServerAppOption func(*MetricsServerApp)
+
+func WithRegisterer(registerer prometheus.Registerer) MetricsServerAppOption {
+	return func(c *MetricsServerApp) {
+		c.registerer = registerer
+	}
+}
+
+func WithGatherer(gatherer prometheus.Gatherer) MetricsServerAppOption {
+	return func(c *MetricsServerApp) {
+		c.gatherer = gatherer
+	}
+}
+
+func WithPort(port int) MetricsServerAppOption {
+	return func(c *MetricsServerApp) {
+		c.port = port
+	}
+}
+
+func WithPath(path string) MetricsServerAppOption {
+	return func(c *MetricsServerApp) {
+		c.path = path
+	}
+}
+
+func WithShutdownTimeout(timeout time.Duration) MetricsServerAppOption {
+	return func(c *MetricsServerApp) {
+		c.shutdownTimeout = timeout
+	}
 }
 
 // RegisterCollectors. custom function to register app specific metrics collector
@@ -65,7 +81,7 @@ func (e *MetricsServerApp) RegisterCollectors(metrics ...prometheus.Collector) e
 	defer e.mu.Unlock()
 
 	for _, m := range metrics {
-		if err := e.Registerer.Register(m); err != nil {
+		if err := e.registerer.Register(m); err != nil {
 			return fmt.Errorf("failed to register collector: %w", err)
 		}
 	}
@@ -77,19 +93,19 @@ func (e *MetricsServerApp) Run(ctx context.Context) error {
 	defer e.mu.Unlock()
 
 	mux := http.NewServeMux()
-	mux.Handle(e.Path, promhttp.InstrumentMetricHandler(
-		e.Registerer, promhttp.HandlerFor(e.Gatherer, promhttp.HandlerOpts{}),
+	mux.Handle(e.path, promhttp.InstrumentMetricHandler(
+		e.registerer, promhttp.HandlerFor(e.gatherer, promhttp.HandlerOpts{}),
 	))
 
 	e.server = &http.Server{
-		Addr:              fmt.Sprintf(":%d", e.Port),
+		Addr:              fmt.Sprintf(":%d", e.port),
 		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
 	errCh := make(chan error, 1)
 	go func() {
-		e.log.Info(fmt.Sprintf("metrics server started on port %d at path %s", e.Port, e.Path))
+		e.log.Info(fmt.Sprintf("metrics server started on port %d at path %s", e.port, e.path))
 		if err := e.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errCh <- fmt.Errorf("metrics server failed: %w", err)
 		}

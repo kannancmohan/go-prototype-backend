@@ -36,9 +36,9 @@ func NewAppRunnerConfig(opts ...AppRunnerConfigOption) AppRunnerConfig {
 
 type AppRunnerConfigOption func(*AppRunnerConfig)
 
-func WithMetricsApp(cfg app.MetricsServerAppConfig) AppRunnerConfigOption {
+func WithMetricsApp(metricsApp *app.MetricsServerApp) AppRunnerConfigOption {
 	return func(a *AppRunnerConfig) {
-		a.metricsApp = app.NewMetricsServerApp(cfg)
+		a.metricsApp = metricsApp
 	}
 }
 
