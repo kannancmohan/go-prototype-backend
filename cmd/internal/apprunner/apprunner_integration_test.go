@@ -348,13 +348,13 @@ func createAppRunnerConfig(tracerSvcName, tracerHost string, tracerPort, metrics
 	config = apprunner.NewAppRunnerConfig(
 		apprunner.WithLogger(log_impl.NewSimpleSlogLogger(log_impl.INFO, nil, log_impl.NewTraceIDHandler)),
 		apprunner.WithAdditionalApps(additionalApps),
-		func() apprunner.Option { //wrapper function to conditionally set metricsApp if metricsAppPort > 0
+		func() apprunner.AppRunnerConfigOption { //wrapper function to conditionally set metricsApp if metricsAppPort > 0
 			if metricsAppPort > 0 {
 				return apprunner.WithMetricsApp(app.MetricsServerAppConfig{Port: metricsAppPort})
 			}
 			return func(*apprunner.AppRunnerConfig) {}
 		}(),
-		func() apprunner.Option { //wrapper function to conditionally set tracerProvider if tracerProvider != nil
+		func() apprunner.AppRunnerConfigOption { //wrapper function to conditionally set tracerProvider if tracerProvider != nil
 			if tracerProvider != nil {
 				return apprunner.WithTracerProvider(tracerProvider)
 			}

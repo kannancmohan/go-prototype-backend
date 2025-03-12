@@ -21,7 +21,7 @@ type AppRunnerConfig struct {
 	exitWait       time.Duration // Maximum duration to wait for apps to stop
 }
 
-func NewAppRunnerConfig(opts ...Option) AppRunnerConfig {
+func NewAppRunnerConfig(opts ...AppRunnerConfigOption) AppRunnerConfig {
 	config := AppRunnerConfig{
 		log:            &log.NoOpLogger{},
 		exitWait:       5 * time.Second,
@@ -34,33 +34,33 @@ func NewAppRunnerConfig(opts ...Option) AppRunnerConfig {
 
 }
 
-type Option func(*AppRunnerConfig)
+type AppRunnerConfigOption func(*AppRunnerConfig)
 
-func WithMetricsApp(cfg app.MetricsServerAppConfig) Option {
+func WithMetricsApp(cfg app.MetricsServerAppConfig) AppRunnerConfigOption {
 	return func(a *AppRunnerConfig) {
 		a.metricsApp = app.NewMetricsServerApp(cfg)
 	}
 }
 
-func WithLogger(log log.Logger) Option {
+func WithLogger(log log.Logger) AppRunnerConfigOption {
 	return func(a *AppRunnerConfig) {
 		a.log = log
 	}
 }
 
-func WithTracerProvider(tp trace.TracerProvider) Option {
+func WithTracerProvider(tp trace.TracerProvider) AppRunnerConfigOption {
 	return func(a *AppRunnerConfig) {
 		a.tracerProvider = tp
 	}
 }
 
-func WithExitWait(exitWait time.Duration) Option {
+func WithExitWait(exitWait time.Duration) AppRunnerConfigOption {
 	return func(a *AppRunnerConfig) {
 		a.exitWait = exitWait
 	}
 }
 
-func WithAdditionalApps(apps []app.App) Option {
+func WithAdditionalApps(apps []app.App) AppRunnerConfigOption {
 	return func(a *AppRunnerConfig) {
 		a.additionalApps = apps
 	}
