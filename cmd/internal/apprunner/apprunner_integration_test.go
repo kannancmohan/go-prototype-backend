@@ -52,18 +52,11 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 		t.Fatalf("failed to get prometheus container address: %v", err)
 	}
 
-	config := apprunner.AppRunnerConfig{
-		MetricsServerConfig: app.MetricsServerAppConfig{
-			Enabled:         true,
-			Port:            metricsAppPort,
-			Path:            "/metrics",
-			ShutdownTimeout: 5 * time.Second,
-		},
-		Logger:   log_impl.NewSimpleSlogLogger(log_impl.INFO, nil),
-		ExitWait: 5 * time.Second,
-	}
-
-	runner, _ := apprunner.NewAppRunner(newTestApp("app1", appPort, nil), config, app.EmptyAppConf)
+	arConf := apprunner.NewAppRunnerConfig2(
+		apprunner.WithMetricsApp(app.MetricsServerAppConfig{Port: metricsAppPort}),
+		apprunner.WithLogger(log_impl.NewSimpleSlogLogger(log_impl.INFO, nil)),
+	)
+	runner, _ := apprunner.NewAppRunner(newTestApp("app1", appPort, nil), arConf, app.EmptyAppConf)
 	defer runner.StopApps()
 
 	go func() {
@@ -334,20 +327,15 @@ func (t simpleTestService) invokeExternalService(ctx context.Context) (string, e
 	return string(bodyBytes), nil
 }
 
-func createAppRunnerConfig(tracerSvcName, tracerHost string, tracerPort, metricsAppPort int, additionalApps ...app.App) (apprunner.AppRunnerConfig, func(context.Context) error, error) {
-	config := apprunner.AppRunnerConfig{
-		Logger:         log_impl.NewSimpleSlogLogger(log_impl.INFO, nil, log_impl.NewTraceIDHandler),
-		ExitWait:       5 * time.Second,
-		AdditionalApps: additionalApps,
-	}
-	if metricsAppPort > 0 {
-		config.MetricsServerConfig = app.MetricsServerAppConfig{
-			Enabled: true,
-			Port:    metricsAppPort,
-		}
-	}
+func createAppRunnerConfig(tracerSvcName, tracerHost string, tracerPort, metricsAppPort int, additionalApps ...app.App) (apprunner.AppRunnerConfig2, func(context.Context) error, error) {
+	var config apprunner.AppRunnerConfig2
+	var tracerProvider trace.TracerProvider
+	var shutdown func(ctx context.Context) error = func(ctx context.Context) error { return nil }
+	var err error
+
 	if tracerHost != "" && tracerPort > 0 {
-		tp, shutdown, err := app_trace.NewOTelTracerProvider(app_trace.OpenTelemetryConfig{Host: tracerHost,
+		tracerProvider, shutdown, err = app_trace.NewOTelTracerProvider(app_trace.OpenTelemetryConfig{
+			Host:        tracerHost,
 			Port:        tracerPort,
 			ConnType:    app_trace.OTelConnTypeHTTP,
 			ServiceName: tracerSvcName},
@@ -355,15 +343,26 @@ func createAppRunnerConfig(tracerSvcName, tracerHost string, tracerPort, metrics
 		if err != nil {
 			return config, nil, err
 		}
-
-		config.TracingConfig = apprunner.TracingConfig{
-			Enabled:        true,
-			TracerProvider: tp,
-		}
-		return config, shutdown, nil
 	}
 
-	return config, func(ctx context.Context) error { return nil }, nil
+	config = apprunner.NewAppRunnerConfig2(
+		apprunner.WithLogger(log_impl.NewSimpleSlogLogger(log_impl.INFO, nil, log_impl.NewTraceIDHandler)),
+		apprunner.WithAdditionalApps(additionalApps),
+		func() apprunner.Option { //wrapper function to conditionally set metricsApp if metricsAppPort > 0
+			if metricsAppPort > 0 {
+				return apprunner.WithMetricsApp(app.MetricsServerAppConfig{Port: metricsAppPort})
+			}
+			return func(*apprunner.AppRunnerConfig2) {}
+		}(),
+		func() apprunner.Option { //wrapper function to conditionally set tracerProvider if tracerProvider != nil
+			if tracerProvider != nil {
+				return apprunner.WithTracerProvider(tracerProvider)
+			}
+			return func(*apprunner.AppRunnerConfig2) {}
+		}(),
+	)
+
+	return config, shutdown, nil
 }
 
 type searchBySvcNameResp struct {

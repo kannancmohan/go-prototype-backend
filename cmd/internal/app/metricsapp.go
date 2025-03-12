@@ -13,7 +13,6 @@ import (
 )
 
 type MetricsServerAppConfig struct {
-	Enabled         bool
 	Registerer      prometheus.Registerer
 	Gatherer        prometheus.Gatherer
 	Port            int

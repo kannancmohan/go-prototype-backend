@@ -38,7 +38,7 @@ func TestAppRunner_Run(t *testing.T) {
 	tests := []struct {
 		name        string
 		mainApp     *mockApp
-		config      apprunner.AppRunnerConfig
+		config      apprunner.AppRunnerConfig2
 		ctxTimeout  time.Duration
 		expectError bool
 		errorMsg    string
@@ -54,12 +54,7 @@ func TestAppRunner_Run(t *testing.T) {
 					return nil
 				},
 			},
-			config: apprunner.AppRunnerConfig{
-				MetricsServerConfig: app.MetricsServerAppConfig{
-					Enabled: false,
-				},
-				ExitWait: 5 * time.Second,
-			},
+			config:      apprunner.NewAppRunnerConfig2(),
 			ctxTimeout:  1 * time.Second,
 			expectError: false,
 		},
@@ -73,12 +68,7 @@ func TestAppRunner_Run(t *testing.T) {
 					return nil
 				},
 			},
-			config: apprunner.AppRunnerConfig{
-				MetricsServerConfig: app.MetricsServerAppConfig{
-					Enabled: false,
-				},
-				ExitWait: 5 * time.Second,
-			},
+			config:      apprunner.NewAppRunnerConfig2(),
 			ctxTimeout:  1 * time.Second,
 			expectError: true,
 			errorMsg:    "mock app failed",
@@ -94,15 +84,7 @@ func TestAppRunner_Run(t *testing.T) {
 					return nil
 				},
 			},
-			config: apprunner.AppRunnerConfig{
-				MetricsServerConfig: app.MetricsServerAppConfig{
-					Enabled:         true,
-					Port:            9090,
-					Path:            "/metrics",
-					ShutdownTimeout: 1 * time.Second,
-				},
-				ExitWait: 5 * time.Second,
-			},
+			config:      apprunner.NewAppRunnerConfig2(apprunner.WithMetricsApp(app.MetricsServerAppConfig{})),
 			ctxTimeout:  1 * time.Second,
 			expectError: false,
 		},
@@ -117,11 +99,8 @@ func TestAppRunner_Run(t *testing.T) {
 					return nil
 				},
 			},
-			config: apprunner.AppRunnerConfig{
-				MetricsServerConfig: app.MetricsServerAppConfig{
-					Enabled: false,
-				},
-				AdditionalApps: []app.App{
+			config: apprunner.NewAppRunnerConfig2(apprunner.WithAdditionalApps(
+				[]app.App{
 					&mockApp{
 						RunFunc: func(ctx context.Context) error {
 							<-ctx.Done()
@@ -132,8 +111,7 @@ func TestAppRunner_Run(t *testing.T) {
 						},
 					},
 				},
-				ExitWait: 5 * time.Second,
-			},
+			)),
 			ctxTimeout:  1 * time.Second,
 			expectError: false,
 		},
@@ -167,7 +145,7 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 	tests := []struct {
 		name            string
 		mainApp         *mockApp
-		config          apprunner.AppRunnerConfig
+		config          apprunner.AppRunnerConfig2
 		inputAppConf    *app.AppConf[any]
 		ctxTimeout      time.Duration
 		expectedAppConf *app.AppConf[any]
@@ -183,12 +161,7 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 					return nil
 				},
 			},
-			config: apprunner.AppRunnerConfig{
-				MetricsServerConfig: app.MetricsServerAppConfig{
-					Enabled: false,
-				},
-				ExitWait: 5 * time.Second,
-			},
+			config:          apprunner.NewAppRunnerConfig2(),
 			inputAppConf:    &app.AppConf[any]{Name: "test", EnvVar: struct{ EnvVarName1 string }{EnvVarName1: "EnvVarName1"}},
 			ctxTimeout:      1 * time.Second,
 			expectedAppConf: &app.AppConf[any]{Name: "test", EnvVar: struct{ EnvVarName1 string }{EnvVarName1: "EnvVarName1"}},
@@ -204,12 +177,7 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 					return nil
 				},
 			},
-			config: apprunner.AppRunnerConfig{
-				MetricsServerConfig: app.MetricsServerAppConfig{
-					Enabled: false,
-				},
-				ExitWait: 5 * time.Second,
-			},
+			config:          apprunner.NewAppRunnerConfig2(),
 			inputAppConf:    &app.AppConf[any]{},
 			ctxTimeout:      1 * time.Second,
 			expectedAppConf: &app.AppConf[any]{},
@@ -225,12 +193,7 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 					return nil
 				},
 			},
-			config: apprunner.AppRunnerConfig{
-				MetricsServerConfig: app.MetricsServerAppConfig{
-					Enabled: false,
-				},
-				ExitWait: 5 * time.Second,
-			},
+			config:          apprunner.NewAppRunnerConfig2(),
 			inputAppConf:    nil,
 			ctxTimeout:      1 * time.Second,
 			expectedAppConf: nil,
