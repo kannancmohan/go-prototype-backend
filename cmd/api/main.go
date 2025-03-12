@@ -19,7 +19,7 @@ func main() {
 	if err != nil {
 		panic(fmt.Errorf("error init AppConf: %w", err))
 	}
-	logger := log_impl.NewSimpleSlogLogger(log_impl.INFO, nil)
+	logger := log_impl.NewSimpleSlogLogger(log_impl.INFO, nil, log_impl.NewTraceIDHandler)
 
 	tp, shutdown, err := app_trace.NewOTelTracerProvider(app_trace.OpenTelemetryConfig{Host: "localhost",
 		Port:        3200,
@@ -50,8 +50,6 @@ func main() {
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	defer cancel()
-
-	logger.Info("Starting App...")
 
 	err = runner.Run(ctx)
 	if err != nil {

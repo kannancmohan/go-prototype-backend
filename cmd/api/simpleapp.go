@@ -41,6 +41,7 @@ func (t *simpleApp) Run(ctx context.Context) error {
 
 	mux := http.NewServeMux()
 	simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.log.WithContext(r.Context()).Debug("Incoming request")
 		fmt.Fprintf(w, "main-handler: %s\n", r.URL.Query().Get("name"))
 	})
 
