@@ -80,49 +80,49 @@ func (p *testTempoContainer) GetContainer() (testcontainers.Container, error) {
 	return p.container, nil
 }
 
-func (p *testTempoContainer) GetContainerApiAddress(ctx context.Context) (TContainerAddr, error) {
+func (p *testTempoContainer) GetContainerApiAddress(ctx context.Context) (testContainerAddr, error) {
 	if p.container == nil {
-		return TContainerAddr{}, fmt.Errorf("GetContainerApiAddress : grafana-tempo container not initialized/started")
+		return testContainerAddr{}, fmt.Errorf("GetContainerApiAddress : grafana-tempo container not initialized/started")
 	}
 	host, err := p.container.Host(ctx)
 	if err != nil {
-		return TContainerAddr{}, fmt.Errorf("failed to get grafana-tempo container host: %w", err)
+		return testContainerAddr{}, fmt.Errorf("failed to get grafana-tempo container host: %w", err)
 	}
 	port, err := p.container.MappedPort(ctx, tempoExposedApiPort)
 	if err != nil {
-		return TContainerAddr{}, fmt.Errorf("failed to get grafana-tempo container api port: %w", err)
+		return testContainerAddr{}, fmt.Errorf("failed to get grafana-tempo container api port: %w", err)
 	}
-	return newTContainerAddr(host, port.Int()), nil
+	return newTestContainerAddr(host, port.Int()), nil
 }
 
-func (p *testTempoContainer) GetContainerOTLPHttpAddress(ctx context.Context) (TContainerAddr, error) {
+func (p *testTempoContainer) GetContainerOTLPHttpAddress(ctx context.Context) (testContainerAddr, error) {
 	if p.container == nil {
-		return TContainerAddr{}, fmt.Errorf("GetContainerOTLPHttpAddress : grafana-tempo container not initialized/started")
+		return testContainerAddr{}, fmt.Errorf("GetContainerOTLPHttpAddress : grafana-tempo container not initialized/started")
 	}
 	host, err := p.container.Host(ctx)
 	if err != nil {
-		return TContainerAddr{}, fmt.Errorf("failed to get grafana-tempo container host: %w", err)
+		return testContainerAddr{}, fmt.Errorf("failed to get grafana-tempo container host: %w", err)
 	}
 	port, err := p.container.MappedPort(ctx, tempoExposedOTLPHttpPort)
 	if err != nil {
-		return TContainerAddr{}, fmt.Errorf("failed to get grafana-tempo container otlp-http port: %w", err)
+		return testContainerAddr{}, fmt.Errorf("failed to get grafana-tempo container otlp-http port: %w", err)
 	}
-	return newTContainerAddr(host, port.Int()), nil
+	return newTestContainerAddr(host, port.Int()), nil
 }
 
-func (p *testTempoContainer) GetContainerOTLPGrpcAddress(ctx context.Context) (TContainerAddr, error) {
+func (p *testTempoContainer) GetContainerOTLPGrpcAddress(ctx context.Context) (testContainerAddr, error) {
 	if p.container == nil {
-		return TContainerAddr{}, fmt.Errorf("GetContainerOTLPGrpcAddress : grafana-tempo container not initialized/started")
+		return testContainerAddr{}, fmt.Errorf("GetContainerOTLPGrpcAddress : grafana-tempo container not initialized/started")
 	}
 	host, err := p.container.Host(ctx)
 	if err != nil {
-		return TContainerAddr{}, fmt.Errorf("failed to get grafana-tempo container host: %w", err)
+		return testContainerAddr{}, fmt.Errorf("failed to get grafana-tempo container host: %w", err)
 	}
 	port, err := p.container.MappedPort(ctx, tempoExposedOTLPGrpcPort)
 	if err != nil {
-		return TContainerAddr{}, fmt.Errorf("failed to get grafana-tempo container otlp-grpc port: %w", err)
+		return testContainerAddr{}, fmt.Errorf("failed to get grafana-tempo container otlp-grpc port: %w", err)
 	}
-	return newTContainerAddr(host, port.Int()), nil
+	return newTestContainerAddr(host, port.Int()), nil
 }
 
 func getTempoConfig(tempoApiPort, tempoOtlpGrpcPort, tempoOtlpHttpPort string) []byte {

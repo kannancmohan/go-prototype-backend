@@ -5,15 +5,15 @@ import (
 	"fmt"
 )
 
-type TContainerAddr struct {
+type testContainerAddr struct {
 	Host    string
 	Port    int
 	Address string
 }
 
-func newTContainerAddr(host string, port int) TContainerAddr {
+func newTestContainerAddr(host string, port int) testContainerAddr {
 	address := fmt.Sprintf("%s:%d", host, port)
-	return TContainerAddr{Host: host, Port: port, Address: address}
+	return testContainerAddr{Host: host, Port: port, Address: address}
 }
 
 type tContainer[T any] interface {

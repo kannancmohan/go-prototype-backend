@@ -83,19 +83,19 @@ func (p *testPrometheusContainer) GetContainer() (testcontainers.Container, erro
 	return p.container, nil
 }
 
-func (p *testPrometheusContainer) GetContainerAddress(ctx context.Context) (TContainerAddr, error) {
+func (p *testPrometheusContainer) GetContainerAddress(ctx context.Context) (testContainerAddr, error) {
 	if p.container == nil {
-		return TContainerAddr{}, fmt.Errorf("GetContainerAddress : prometheus container not initialized/started")
+		return testContainerAddr{}, fmt.Errorf("GetContainerAddress : prometheus container not initialized/started")
 	}
 	host, err := p.container.Host(ctx)
 	if err != nil {
-		return TContainerAddr{}, fmt.Errorf("failed to get prometheus container host: %w", err)
+		return testContainerAddr{}, fmt.Errorf("failed to get prometheus container host: %w", err)
 	}
 	port, err := p.container.MappedPort(ctx, prometheusExposedPort)
 	if err != nil {
-		return TContainerAddr{}, fmt.Errorf("failed to get prometheus container port: %w", err)
+		return testContainerAddr{}, fmt.Errorf("failed to get prometheus container port: %w", err)
 	}
-	return newTContainerAddr(host, port.Int()), nil
+	return newTestContainerAddr(host, port.Int()), nil
 }
 
 func getPrometheusConfig(appHost string) []byte {

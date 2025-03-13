@@ -13,17 +13,45 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-type AppRunnerConfig struct {
-	MetricsServerConfig app.MetricsServerAppConfig // Configuration for the metrics server
-	Logger              log.Logger
-	TracingConfig       TracingConfig
-	ExitWait            time.Duration // Maximum duration to wait for apps to stop. (Need to set a value greater than 0 to take effect)
-	AdditionalApps      []app.App     // Additional apps to run
+type AppRunnerOption func(*appRunnerConfig)
+
+// appRunnerConfig holds the configuration for the appRunner.
+type appRunnerConfig struct {
+	metricsApp     *app.MetricsServerApp
+	log            log.Logger
+	tracerProvider trace.TracerProvider
+	additionalApps []app.App
+	exitWait       time.Duration // Maximum duration to wait for apps to stop
 }
 
-type TracingConfig struct {
-	Enabled        bool
-	TracerProvider trace.TracerProvider // Optional: Custom tracer provider
+func WithMetricsApp(metricsApp *app.MetricsServerApp) AppRunnerOption {
+	return func(c *appRunnerConfig) {
+		c.metricsApp = metricsApp
+	}
+}
+
+func WithLogger(log log.Logger) AppRunnerOption {
+	return func(c *appRunnerConfig) {
+		c.log = log
+	}
+}
+
+func WithTracerProvider(tp trace.TracerProvider) AppRunnerOption {
+	return func(c *appRunnerConfig) {
+		c.tracerProvider = tp
+	}
+}
+
+func WithAdditionalApps(additionalApps []app.App) AppRunnerOption {
+	return func(c *appRunnerConfig) {
+		c.additionalApps = additionalApps
+	}
+}
+
+func WithExitWait(exitWait time.Duration) AppRunnerOption {
+	return func(c *appRunnerConfig) {
+		c.exitWait = exitWait
+	}
 }
 
 type appRunner struct {
@@ -34,65 +62,67 @@ type appRunner struct {
 	mu       sync.Mutex    // Mutex to protect the apps slice
 }
 
-func NewAppRunner[T any](mainApp app.App, config AppRunnerConfig, appConfig *app.AppConf[T]) (*appRunner, error) {
+func NewAppRunner[T any](mainApp app.App, appsCommonCfg *app.AppConf[T], opts ...AppRunnerOption) (*appRunner, error) {
 	if mainApp == nil {
 		return nil, fmt.Errorf("mainApp cannot be nil")
 	}
 
-	// if logger is not available, set it to NoOpLogger which does nothing when its method are called
-	if config.Logger == nil {
-		config.Logger = &log.NoOpLogger{}
+	config := appRunnerConfig{
+		log:            &log.NoOpLogger{},        // Default logger
+		exitWait:       5 * time.Second,          // Default exit wait time
+		tracerProvider: otel.GetTracerProvider(), // Default TracerProvider
+	}
+
+	// Apply functional options
+	for _, opt := range opts {
+		opt(&config)
 	}
 
 	apps := []app.App{mainApp}
 
-	if len(config.AdditionalApps) > 0 {
-		apps = append(apps, config.AdditionalApps...)
+	if len(config.additionalApps) > 0 {
+		apps = append(apps, config.additionalApps...)
 	}
 
-	if config.MetricsServerConfig.Enabled {
-		metricsApp := app.NewMetricsServerApp(config.MetricsServerConfig)
+	if config.metricsApp != nil {
 		// register the metrics collectors from apps that supports it
 		for _, ap := range apps {
 			if provider, ok := ap.(app.MetricsSetter); ok {
 				collectors := provider.PrometheusCollectors()
-				metricsApp.RegisterCollectors(collectors...)
+				config.metricsApp.RegisterCollectors(collectors...)
 			}
 		}
-		apps = append(apps, metricsApp)
+		apps = append(apps, config.metricsApp)
 	}
 
 	// set the logger and appConf to apps that supports it
 	for _, ap := range apps {
 		if loggableApp, ok := ap.(app.Loggable); ok {
-			loggableApp.SetLogger(config.Logger)
+			loggableApp.SetLogger(config.log)
 		}
-		if appConfig != nil {
+		if appsCommonCfg != nil {
 			if configurableApp, ok := ap.(app.AppConfigSetter[T]); ok {
-				configurableApp.SetAppConf(appConfig)
+				configurableApp.SetAppConf(appsCommonCfg)
 			}
 		}
 	}
 
 	// set tracing to apps that supports it
 	var appRunnerTracer trace.Tracer
-	if config.TracingConfig.Enabled {
-		tracerProvider := config.TracingConfig.TracerProvider
-		if tracerProvider == nil {
-			tracerProvider = otel.GetTracerProvider() // Use global tracer provider if none is provided
-		}
-		appRunnerTracer = tracerProvider.Tracer("apprunner") //creating a tracer for appRunner in case it needs to add tracing
+	if config.tracerProvider != nil {
+		traceProvide := config.tracerProvider
+		appRunnerTracer = traceProvide.Tracer("apprunner") //creating a tracer for appRunner in case it needs tracing
 		for _, ap := range apps {
 			if traceable, ok := ap.(app.Traceable); ok {
-				traceable.SetTracerProvider(tracerProvider)
+				traceable.SetTracerProvider(traceProvide)
 			}
 		}
 	}
 
 	return &appRunner{
 		apps:     apps,
-		log:      config.Logger,
-		exitWait: config.ExitWait,
+		log:      config.log,
+		exitWait: config.exitWait,
 		tracer:   appRunnerTracer,
 	}, nil
 }

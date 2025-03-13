@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"time"
 
 	"github.com/kannancmohan/go-prototype-backend/cmd/internal/app"
 	"github.com/kannancmohan/go-prototype-backend/cmd/internal/apprunner"
@@ -31,19 +30,13 @@ func main() {
 	}
 	defer shutdown(context.Background())
 
-	runner, err := apprunner.NewAppRunner(NewSimpleApp(9933),
-		apprunner.AppRunnerConfig{
-			ExitWait: 5 * time.Second,
-			MetricsServerConfig: app.MetricsServerAppConfig{
-				Enabled: true,
-			},
-			Logger: logger,
-			TracingConfig: apprunner.TracingConfig{
-				Enabled:        true,
-				TracerProvider: tp,
-			},
-		},
-		appConf)
+	runner, err := apprunner.NewAppRunner(
+		NewSimpleApp(9933),
+		appConf,
+		apprunner.WithLogger(logger),
+		apprunner.WithMetricsApp(app.NewMetricsServerApp()),
+		apprunner.WithTracerProvider(tp),
+	)
 	if err != nil {
 		panic(fmt.Errorf("error creating apprunner: %w", err))
 	}
