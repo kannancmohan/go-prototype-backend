@@ -15,6 +15,14 @@ import (
 
 type AppRunnerOption func(*appRunnerConfig)
 
+// appRunnerConfig holds the configuration for the appRunner.
+type appRunnerConfig struct {
+	metricsApp     *app.MetricsServerApp
+	log            log.Logger
+	tracerProvider trace.TracerProvider
+	additionalApps []app.App
+	exitWait       time.Duration // Maximum duration to wait for apps to stop
+}
 func WithMetricsApp(metricsApp *app.MetricsServerApp) AppRunnerOption {
 	return func(c *appRunnerConfig) {
 		c.metricsApp = metricsApp
@@ -45,14 +53,6 @@ func WithExitWait(exitWait time.Duration) AppRunnerOption {
 	}
 }
 
-// appRunnerConfig holds the configuration for the appRunner.
-type appRunnerConfig struct {
-	metricsApp     *app.MetricsServerApp
-	log            log.Logger
-	tracerProvider trace.TracerProvider
-	additionalApps []app.App
-	exitWait       time.Duration // Maximum duration to wait for apps to stop
-}
 type appRunner struct {
 	apps     []app.App
 	log      log.Logger
