@@ -31,8 +31,8 @@ func main() {
 	defer shutdown(context.Background())
 
 	runner, err := apprunner.NewAppRunner(
-		NewSimpleApp(9933), 
-		appConf, 
+		NewSimpleApp(9933),
+		appConf,
 		apprunner.WithLogger(logger),
 		apprunner.WithMetricsApp(app.NewMetricsServerApp()),
 		apprunner.WithTracerProvider(tp),

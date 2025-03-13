@@ -23,6 +23,7 @@ type appRunnerConfig struct {
 	additionalApps []app.App
 	exitWait       time.Duration // Maximum duration to wait for apps to stop
 }
+
 func WithMetricsApp(metricsApp *app.MetricsServerApp) AppRunnerOption {
 	return func(c *appRunnerConfig) {
 		c.metricsApp = metricsApp
@@ -61,7 +62,7 @@ type appRunner struct {
 	mu       sync.Mutex    // Mutex to protect the apps slice
 }
 
-func NewAppRunner[T any](mainApp app.App, appsCommonConfig *app.AppConf[T], opts ...AppRunnerOption) (*appRunner, error) {
+func NewAppRunner[T any](mainApp app.App, appsCommonCfg *app.AppConf[T], opts ...AppRunnerOption) (*appRunner, error) {
 	if mainApp == nil {
 		return nil, fmt.Errorf("mainApp cannot be nil")
 	}
@@ -99,9 +100,9 @@ func NewAppRunner[T any](mainApp app.App, appsCommonConfig *app.AppConf[T], opts
 		if loggableApp, ok := ap.(app.Loggable); ok {
 			loggableApp.SetLogger(config.log)
 		}
-		if appsCommonConfig != nil {
+		if appsCommonCfg != nil {
 			if configurableApp, ok := ap.(app.AppConfigSetter[T]); ok {
-				configurableApp.SetAppConf(appsCommonConfig)
+				configurableApp.SetAppConf(appsCommonCfg)
 			}
 		}
 	}
@@ -110,7 +111,7 @@ func NewAppRunner[T any](mainApp app.App, appsCommonConfig *app.AppConf[T], opts
 	var appRunnerTracer trace.Tracer
 	if config.tracerProvider != nil {
 		traceProvide := config.tracerProvider
-		appRunnerTracer = traceProvide.Tracer("apprunner") //creating a tracer for appRunner in case it needs to add tracing
+		appRunnerTracer = traceProvide.Tracer("apprunner") //creating a tracer for appRunner in case it needs tracing
 		for _, ap := range apps {
 			if traceable, ok := ap.(app.Traceable); ok {
 				traceable.SetTracerProvider(traceProvide)

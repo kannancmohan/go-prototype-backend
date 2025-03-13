@@ -84,7 +84,7 @@ func TestAppRunner_Run(t *testing.T) {
 					return nil
 				},
 			},
-			config: []apprunner.AppRunnerOption{apprunner.WithMetricsApp(app.NewMetricsServerApp())},
+			config:      []apprunner.AppRunnerOption{apprunner.WithMetricsApp(app.NewMetricsServerApp())},
 			ctxTimeout:  1 * time.Second,
 			expectError: false,
 		},
