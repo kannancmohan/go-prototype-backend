@@ -58,71 +58,71 @@ func (p *testLgtmContainer) GetContainer() (*grafana_lgtm.GrafanaLGTMContainer, 
 	return p.container, nil
 }
 
-func (p *testLgtmContainer) GetPrometheusAddress(ctx context.Context) (TContainerAddr, error) {
+func (p *testLgtmContainer) GetPrometheusAddress(ctx context.Context) (testContainerAddr, error) {
 	if p.container == nil {
-		return TContainerAddr{}, fmt.Errorf("GetPrometheusAddress : lgtm container not initialized/started")
+		return testContainerAddr{}, fmt.Errorf("GetPrometheusAddress : lgtm container not initialized/started")
 	}
 
 	addr, err := p.container.PrometheusHttpEndpoint(ctx)
 	if err != nil {
-		return TContainerAddr{}, fmt.Errorf("failed to get prometheus address: %w", err)
+		return testContainerAddr{}, fmt.Errorf("failed to get prometheus address: %w", err)
 	}
 	return generateTContainerAddr(addr)
 }
 
-func (p *testLgtmContainer) GetGrafanaAddress(ctx context.Context) (TContainerAddr, error) {
+func (p *testLgtmContainer) GetGrafanaAddress(ctx context.Context) (testContainerAddr, error) {
 	if p.container == nil {
-		return TContainerAddr{}, fmt.Errorf("GetGrafanaAddress : lgtm container not initialized/started")
+		return testContainerAddr{}, fmt.Errorf("GetGrafanaAddress : lgtm container not initialized/started")
 	}
 
 	addr, err := p.container.HttpEndpoint(ctx)
 	if err != nil {
-		return TContainerAddr{}, fmt.Errorf("failed to get grafana address: %w", err)
+		return testContainerAddr{}, fmt.Errorf("failed to get grafana address: %w", err)
 	}
 	return generateTContainerAddr(addr)
 }
 
-func (p *testLgtmContainer) GetTempoAddress(ctx context.Context) (TContainerAddr, error) {
+func (p *testLgtmContainer) GetTempoAddress(ctx context.Context) (testContainerAddr, error) {
 	if p.container == nil {
-		return TContainerAddr{}, fmt.Errorf("GetTempoAddress : lgtm container not initialized/started")
+		return testContainerAddr{}, fmt.Errorf("GetTempoAddress : lgtm container not initialized/started")
 	}
 
 	addr, err := p.container.TempoEndpoint(ctx)
 	if err != nil {
-		return TContainerAddr{}, fmt.Errorf("failed to get tempo address: %w", err)
+		return testContainerAddr{}, fmt.Errorf("failed to get tempo address: %w", err)
 	}
 	return generateTContainerAddr(addr)
 }
 
-func (p *testLgtmContainer) GetOtelHTTPAddress(ctx context.Context) (TContainerAddr, error) {
+func (p *testLgtmContainer) GetOtelHTTPAddress(ctx context.Context) (testContainerAddr, error) {
 	if p.container == nil {
-		return TContainerAddr{}, fmt.Errorf("GetOtelHTTPAddress : lgtm container not initialized/started")
+		return testContainerAddr{}, fmt.Errorf("GetOtelHTTPAddress : lgtm container not initialized/started")
 	}
 
 	addr, err := p.container.OtlpHttpEndpoint(ctx)
 	if err != nil {
-		return TContainerAddr{}, fmt.Errorf("failed to get otel http address: %w", err)
+		return testContainerAddr{}, fmt.Errorf("failed to get otel http address: %w", err)
 	}
 	return generateTContainerAddr(addr)
 }
 
-func (p *testLgtmContainer) GetOtelGRPCAddress(ctx context.Context) (TContainerAddr, error) {
+func (p *testLgtmContainer) GetOtelGRPCAddress(ctx context.Context) (testContainerAddr, error) {
 	if p.container == nil {
-		return TContainerAddr{}, fmt.Errorf("GetOtelGRPCAddress : lgtm container not initialized/started")
+		return testContainerAddr{}, fmt.Errorf("GetOtelGRPCAddress : lgtm container not initialized/started")
 	}
 
 	addr, err := p.container.OtlpGrpcEndpoint(ctx)
 	if err != nil {
-		return TContainerAddr{}, fmt.Errorf("failed to get otel grpc address: %w", err)
+		return testContainerAddr{}, fmt.Errorf("failed to get otel grpc address: %w", err)
 	}
 	return generateTContainerAddr(addr)
 }
 
-func generateTContainerAddr(address string) (TContainerAddr, error) {
+func generateTContainerAddr(address string) (testContainerAddr, error) {
 	addrSplit := strings.Split(address, ":")
 	if splitLen := len(addrSplit); splitLen != 2 {
-		return TContainerAddr{}, fmt.Errorf("failed to split address. expected 2 splits, but splits length was %d", splitLen)
+		return testContainerAddr{}, fmt.Errorf("failed to split address. expected 2 splits, but splits length was %d", splitLen)
 	}
 	port, _ := strconv.Atoi(addrSplit[1])
-	return newTContainerAddr(addrSplit[0], port), nil
+	return newTestContainerAddr(addrSplit[0], port), nil
 }
