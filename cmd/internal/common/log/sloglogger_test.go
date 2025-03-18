@@ -118,31 +118,53 @@ func TestSlogLoggerWithContext(t *testing.T) {
 			var buf bytes.Buffer
 
 			ctx := context.WithValue(context.Background(), tt.inputContextArgs[0], tt.inputContextArgs[1])
-			logger := log_impl.NewSimpleSlogLogger(log_impl.DEBUG, &buf, func(h slog.Handler) slog.Handler {
+			originalLogger := log_impl.NewSimpleSlogLogger(log_impl.DEBUG, &buf, func(h slog.Handler) slog.Handler {
 				return log_impl.NewCustomAttrHandler(h, string(testContextKey), testContextKey)
 			})
-			loggerWithContext := logger.WithContext(ctx)
+			loggerWithContext := originalLogger.WithContext(ctx)
 
-			tt.loggerMethod(loggerWithContext, tt.inputMsg, tt.inputArgs...)
+			tt.loggerMethod(loggerWithContext, tt.inputMsg, tt.inputArgs...) //invoking logger fun(eg Info) using loggerWithContext
+			tt.loggerMethod(originalLogger, "original log", tt.inputArgs...) //invoking logger fun(eg Info) using original originalLogger
 
-			var logOutput map[string]any
-			if err := json.Unmarshal(buf.Bytes(), &logOutput); err != nil {
-				t.Fatalf("failed to unmarshal log output: %v", err)
+			var logEntries []map[string]any
+			dec := json.NewDecoder(&buf)
+			for dec.More() {
+				var entry map[string]any
+				if err := dec.Decode(&entry); err != nil {
+					t.Fatalf("failed to decode log entry: %v", err)
+				}
+				logEntries = append(logEntries, entry)
 			}
 
+			// ✅ Expect two log entries (one from original logger, one from loggerWithContext)
+			if len(logEntries) != 2 {
+				t.Fatalf("expected 2 log entries, got %d", len(logEntries))
+			}
+
+			// ✅ Check the log generated using loggerWithContext - should HAVE context attributes
+			contextLog := logEntries[0]
 			// Verify the log message
-			if logOutput["msg"] != tt.expectedMsg {
-				t.Errorf("expected message %q, got %q", tt.expectedMsg, logOutput["msg"])
+			if contextLog["msg"] != tt.expectedMsg {
+				t.Errorf("expected message %q, got %q", tt.expectedMsg, contextLog["msg"])
 			}
 
 			// Verify the log key-value pair
-			if logOutput[tt.expectedKey] != tt.expectedValue {
-				t.Errorf("expected %q=%q, got %q=%q", tt.expectedKey, tt.expectedValue, tt.expectedKey, logOutput[tt.expectedKey])
+			if contextLog[tt.expectedKey] != tt.expectedValue {
+				t.Errorf("expected %q=%q, got %q=%q", tt.expectedKey, tt.expectedValue, tt.expectedKey, contextLog[tt.expectedKey])
 			}
 
 			// Verify the context key-value pair
-			if logOutput[tt.expectedContextKey] != tt.expectedContextValue {
-				t.Errorf("expected context %q=%q, got %q=%q", tt.expectedContextKey, tt.expectedContextValue, tt.expectedContextKey, logOutput[tt.expectedContextKey])
+			if contextLog[tt.expectedContextKey] != tt.expectedContextValue {
+				t.Errorf("expected context %q=%q, got %q=%q", tt.expectedContextKey, tt.expectedContextValue, tt.expectedContextKey, contextLog[tt.expectedContextKey])
+			}
+
+			// ✅ Check the log generated using original logger - should NOT have context attributes
+			originalLog := logEntries[1]
+			if originalLog["msg"] != "original log" {
+				t.Errorf("expected original log message %q, got %q", "original log", originalLog["msg"])
+			}
+			if _, exists := originalLog[tt.expectedContextKey]; exists {
+				t.Errorf("original log should NOT have context key %q, but it does", tt.expectedContextKey)
 			}
 		})
 	}
@@ -179,29 +201,52 @@ func TestSlogLoggerWith(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
 
-			logger := log_impl.NewSimpleSlogLogger(log_impl.DEBUG, &buf)
-			loggerWithFields := logger.With(tt.inputWithArgs...)
+			originalLogger := log_impl.NewSimpleSlogLogger(log_impl.DEBUG, &buf)
+			loggerWithFields := originalLogger.With(tt.inputWithArgs...)
 
-			tt.loggerMethod(loggerWithFields, tt.inputMsg, tt.inputArgs...)
+			tt.loggerMethod(loggerWithFields, tt.inputMsg, tt.inputArgs...)  //invoking logger fun(eg Info) using loggerWithFields
+			tt.loggerMethod(originalLogger, "original log", tt.inputArgs...) //invoking logger fun(eg Info) using original originalLogger
 
-			var logOutput map[string]any
-			if err := json.Unmarshal(buf.Bytes(), &logOutput); err != nil {
-				t.Fatalf("failed to unmarshal log output: %v", err)
+			var logEntries []map[string]any
+			dec := json.NewDecoder(&buf)
+			for dec.More() {
+				var entry map[string]any
+				if err := dec.Decode(&entry); err != nil {
+					t.Fatalf("failed to decode log entry: %v", err)
+				}
+				logEntries = append(logEntries, entry)
 			}
 
+			// ✅ Expect two log entries (one from original logger, one from loggerWithContext)
+			if len(logEntries) != 2 {
+				t.Fatalf("expected 2 log entries, got %d", len(logEntries))
+			}
+
+			// ✅ Check the log generated using loggerWithFields - should HAVE fields attributes
+			withLog := logEntries[0]
+
 			// Verify the log message
-			if logOutput["msg"] != tt.expectedMsg {
-				t.Errorf("expected message %q, got %q", tt.expectedMsg, logOutput["msg"])
+			if withLog["msg"] != tt.expectedMsg {
+				t.Errorf("expected message %q, got %q", tt.expectedMsg, withLog["msg"])
 			}
 
 			// Verify the log key-value pair
-			if logOutput[tt.expectedKey] != tt.expectedValue {
-				t.Errorf("expected %q=%q, got %q=%q", tt.expectedKey, tt.expectedValue, tt.expectedKey, logOutput[tt.expectedKey])
+			if withLog[tt.expectedKey] != tt.expectedValue {
+				t.Errorf("expected %q=%q, got %q=%q", tt.expectedKey, tt.expectedValue, tt.expectedKey, withLog[tt.expectedKey])
 			}
 
 			// Verify the additional key-value pair added by With
-			if logOutput[tt.expectedWithKey] != tt.expectedWithValue {
-				t.Errorf("expected additional field %q=%q, got %q=%q", tt.expectedWithKey, tt.expectedWithValue, tt.expectedWithKey, logOutput[tt.expectedWithKey])
+			if withLog[tt.expectedWithKey] != tt.expectedWithValue {
+				t.Errorf("expected additional field %q=%q, got %q=%q", tt.expectedWithKey, tt.expectedWithValue, tt.expectedWithKey, withLog[tt.expectedWithKey])
+			}
+
+			// ✅ Check the log generated using original logger - should NOT have fields attributes
+			originalLog := logEntries[1]
+			if originalLog["msg"] != "original log" {
+				t.Errorf("expected original log message %q, got %q", "original log", originalLog["msg"])
+			}
+			if _, exists := originalLog[tt.expectedWithKey]; exists {
+				t.Errorf("original log should NOT have context key %q, but it does", tt.expectedWithKey)
 			}
 		})
 	}

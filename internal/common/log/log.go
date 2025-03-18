@@ -18,14 +18,14 @@ type NoOpLogger struct{}
 
 var _ Logger = &NoOpLogger{}
 
-func (*NoOpLogger) Debug(string, ...any) {}
-func (*NoOpLogger) Info(string, ...any)  {}
-func (*NoOpLogger) Warn(string, ...any)  {}
-func (*NoOpLogger) Error(string, ...any) {}
+func (NoOpLogger) Debug(string, ...any) {}
+func (NoOpLogger) Info(string, ...any)  {}
+func (NoOpLogger) Warn(string, ...any)  {}
+func (NoOpLogger) Error(string, ...any) {}
 
-func (n *NoOpLogger) With(...any) Logger {
+func (n NoOpLogger) With(...any) Logger {
 	return n
 }
-func (n *NoOpLogger) WithContext(context.Context) Logger {
+func (n NoOpLogger) WithContext(context.Context) Logger {
 	return n
 }

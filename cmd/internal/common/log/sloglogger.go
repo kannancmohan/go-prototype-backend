@@ -46,24 +46,24 @@ func NewSimpleSlogLogger(logLevel Level, writer io.Writer, customHandlers ...fun
 	return &slogLogger{logger: slog.New(handler)}
 }
 
-func (s *slogLogger) Debug(msg string, args ...any) {
+func (s slogLogger) Debug(msg string, args ...any) {
 	s.logger.DebugContext(s.ctx, msg, args...)
 }
 
-func (s *slogLogger) Info(msg string, args ...any) {
+func (s slogLogger) Info(msg string, args ...any) {
 	s.logger.InfoContext(s.ctx, msg, args...)
 }
 
-func (s *slogLogger) Warn(msg string, args ...any) {
+func (s slogLogger) Warn(msg string, args ...any) {
 	s.logger.WarnContext(s.ctx, msg, args...)
 }
 
-func (s *slogLogger) Error(msg string, args ...any) {
+func (s slogLogger) Error(msg string, args ...any) {
 	s.logger.ErrorContext(s.ctx, msg, args...)
 }
 
 // With returns a new *SLogLogger with the provided key/value pairs attached
-func (s *slogLogger) With(args ...any) log.Logger {
+func (s slogLogger) With(args ...any) log.Logger {
 	return &slogLogger{
 		logger: s.logger.With(args...),
 		ctx:    s.ctx,
@@ -72,7 +72,7 @@ func (s *slogLogger) With(args ...any) log.Logger {
 
 // WithContext returns an *SLogLogger which still points to the same underlying *slog.Logger,
 // but has the provided context attached for Debug, Info, Warn, and Error calls.
-func (s *slogLogger) WithContext(ctx context.Context) log.Logger {
+func (s slogLogger) WithContext(ctx context.Context) log.Logger {
 	return &slogLogger{
 		logger: s.logger,
 		ctx:    ctx,
