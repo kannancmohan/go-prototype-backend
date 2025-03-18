@@ -17,7 +17,7 @@ import (
 var _ app.AppConfigSetter[any] = &mockApp{}
 
 type mockApp struct {
-	appConf  *app.AppConf[any]
+	appConf  app.AppConf[any]
 	RunFunc  func(ctx context.Context) error
 	StopFunc func(ctx context.Context) error
 }
@@ -30,7 +30,7 @@ func (m *mockApp) Stop(ctx context.Context) error {
 	return m.StopFunc(ctx)
 }
 
-func (m *mockApp) SetAppConf(conf *app.AppConf[any]) {
+func (m *mockApp) SetAppConf(conf app.AppConf[any]) {
 	m.appConf = conf
 }
 
@@ -146,9 +146,9 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 		name            string
 		mainApp         *mockApp
 		config          []apprunner.AppRunnerOption
-		inputAppConf    *app.AppConf[any]
+		inputAppConf    app.AppConf[any]
 		ctxTimeout      time.Duration
-		expectedAppConf *app.AppConf[any]
+		expectedAppConf app.AppConf[any]
 	}{
 		{
 			name: "Successful Run",
@@ -162,9 +162,9 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 				},
 			},
 			config:          []apprunner.AppRunnerOption{},
-			inputAppConf:    &app.AppConf[any]{Name: "test", EnvVar: struct{ EnvVarName1 string }{EnvVarName1: "EnvVarName1"}},
+			inputAppConf:    app.AppConf[any]{Name: "test", EnvVar: struct{ EnvVarName1 string }{EnvVarName1: "EnvVarName1"}},
 			ctxTimeout:      1 * time.Second,
-			expectedAppConf: &app.AppConf[any]{Name: "test", EnvVar: struct{ EnvVarName1 string }{EnvVarName1: "EnvVarName1"}},
+			expectedAppConf: app.AppConf[any]{Name: "test", EnvVar: struct{ EnvVarName1 string }{EnvVarName1: "EnvVarName1"}},
 		},
 		{
 			name: "Successful Run - With empty AppConf",
@@ -178,25 +178,9 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 				},
 			},
 			config:          []apprunner.AppRunnerOption{},
-			inputAppConf:    &app.AppConf[any]{},
+			inputAppConf:    app.AppConf[any]{},
 			ctxTimeout:      1 * time.Second,
-			expectedAppConf: &app.AppConf[any]{},
-		},
-		{
-			name: "Successful Run - With nil AppConf",
-			mainApp: &mockApp{
-				RunFunc: func(ctx context.Context) error {
-					<-ctx.Done()
-					return nil
-				},
-				StopFunc: func(ctx context.Context) error {
-					return nil
-				},
-			},
-			config:          []apprunner.AppRunnerOption{},
-			inputAppConf:    nil,
-			ctxTimeout:      1 * time.Second,
-			expectedAppConf: nil,
+			expectedAppConf: app.AppConf[any]{},
 		},
 	}
 
@@ -207,7 +191,7 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 			defer cancel()
 
 			err := runner.Run(ctx)
-			if tt.expectedAppConf != nil && !reflect.DeepEqual(tt.expectedAppConf, tt.mainApp.appConf) {
+			if !reflect.DeepEqual(tt.expectedAppConf, tt.mainApp.appConf) {
 				t.Errorf("expected AppConf %q, got %q", tt.expectedAppConf, tt.mainApp.appConf)
 			} else {
 				if err != nil {
