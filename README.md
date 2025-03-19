@@ -77,6 +77,16 @@ make test-skip-integration-tests
 or
 go test -v -tags skip_integration_tests ./...
 ```
+##### Run linters
+```
+golangci-lint run -v
+```
+
+To run only a specific linter(eg staticcheck)
+```
+golangci-lint run --no-config --disable-all --enable=staticcheck -v
+```
+
 
 #### Configuring Tracing 
 ##### Adding tracing to incoming http request 

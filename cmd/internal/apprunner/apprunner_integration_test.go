@@ -326,17 +326,18 @@ func (t simpleTestService) invokeExternalService(ctx context.Context) (string, e
 	return string(bodyBytes), nil
 }
 
-func createAppRunnerConfig(tracerSvcName, tracerHost string, tracerPort, metricsAppPort int, additionalApps ...app.App) ([]apprunner.AppRunnerOption, func(context.Context) error, error) {
+func createAppRunnerConfig(tracerSvcName, tracerHost string, tracerPort, metricsAppPort int, optApps ...app.App) (
+	[]apprunner.AppRunnerOption, func(context.Context) error, error) {
 	var config []apprunner.AppRunnerOption
 	var tracerProvider trace.TracerProvider
 	var shutdown func(ctx context.Context) error = func(ctx context.Context) error { return nil }
 	var err error
 
 	config = append(config, apprunner.WithLogger(log_impl.NewSimpleSlogLogger(log_impl.INFO, nil, log_impl.NewTraceIDHandler)))
-	config = append(config, apprunner.WithAdditionalApps(additionalApps))
+	config = append(config, apprunner.WithAdditionalApps(optApps))
 
 	if metricsAppPort > 0 {
-		config = append(config, apprunner.WithAdditionalApps(additionalApps))
+		config = append(config, apprunner.WithAdditionalApps(optApps))
 	}
 
 	if tracerHost != "" && tracerPort > 0 {
