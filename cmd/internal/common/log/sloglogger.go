@@ -19,7 +19,7 @@ const (
 	ERROR = Level("error")
 )
 
-var _ log.Logger = &slogLogger{}
+var _ log.Logger = slogLogger{}
 
 type slogLogger struct {
 	logger *slog.Logger
@@ -89,11 +89,11 @@ func NewTraceIDHandler(nextHandler slog.Handler) slog.Handler {
 	return &traceIDHandler{traceIDKey: "traceID", nextHandler: nextHandler}
 }
 
-func (h *traceIDHandler) Enabled(ctx context.Context, level slog.Level) bool {
+func (h traceIDHandler) Enabled(ctx context.Context, level slog.Level) bool {
 	return h.nextHandler.Enabled(ctx, level)
 }
 
-func (h *traceIDHandler) Handle(ctx context.Context, record slog.Record) error {
+func (h traceIDHandler) Handle(ctx context.Context, record slog.Record) error {
 	// Extract traceId from the OpenTelemetry context
 	spanContext := trace.SpanContextFromContext(ctx)
 	if spanContext.HasTraceID() {
@@ -102,11 +102,11 @@ func (h *traceIDHandler) Handle(ctx context.Context, record slog.Record) error {
 	return h.nextHandler.Handle(ctx, record)
 }
 
-func (h *traceIDHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+func (h traceIDHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return NewTraceIDHandler(h.nextHandler.WithAttrs(attrs))
 }
 
-func (h *traceIDHandler) WithGroup(name string) slog.Handler {
+func (h traceIDHandler) WithGroup(name string) slog.Handler {
 	return NewTraceIDHandler(h.nextHandler.WithGroup(name))
 }
 
@@ -125,11 +125,11 @@ func NewCustomAttrHandler(handler slog.Handler, attrKey string, ctxKey any) slog
 	}
 }
 
-func (h *CustomAttrHandler) Enabled(ctx context.Context, level slog.Level) bool {
+func (h CustomAttrHandler) Enabled(ctx context.Context, level slog.Level) bool {
 	return h.nextHandler.Enabled(ctx, level)
 }
 
-func (h *CustomAttrHandler) Handle(ctx context.Context, record slog.Record) error {
+func (h CustomAttrHandler) Handle(ctx context.Context, record slog.Record) error {
 	// Extract the custom value from the context
 	if value, ok := ctx.Value(h.ctxKey).(string); ok {
 		record.AddAttrs(slog.Any(h.attrKey, value))
@@ -137,10 +137,10 @@ func (h *CustomAttrHandler) Handle(ctx context.Context, record slog.Record) erro
 	return h.nextHandler.Handle(ctx, record)
 }
 
-func (h *CustomAttrHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+func (h CustomAttrHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return NewCustomAttrHandler(h.nextHandler.WithAttrs(attrs), h.attrKey, h.ctxKey)
 }
 
-func (h *CustomAttrHandler) WithGroup(name string) slog.Handler {
+func (h CustomAttrHandler) WithGroup(name string) slog.Handler {
 	return NewCustomAttrHandler(h.nextHandler.WithGroup(name), h.attrKey, h.ctxKey)
 }
