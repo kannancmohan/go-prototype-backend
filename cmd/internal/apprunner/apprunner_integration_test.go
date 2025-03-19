@@ -45,7 +45,11 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start prometheus container : %v", err)
 	}
-	defer promContainer.Stop(context.Background())
+	defer func() {
+		if err = promContainer.Stop(context.Background()); err != nil {
+			t.Logf("Failed to stop container: %v", err)
+		}
+	}()
 
 	containerAddr, err := promContainer.GetContainerAddress(ctx)
 	if err != nil {
@@ -58,17 +62,21 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 		apprunner.WithMetricsApp(app.NewMetricsServerApp(app.WithPort(metricsAppPort))),
 		apprunner.WithLogger(log_impl.NewSimpleSlogLogger(log_impl.INFO, nil)),
 	)
-	defer runner.StopApps()
+	defer func() {
+		if err = runner.StopApps(); err != nil {
+			t.Logf("Failed to stop apps: %v", err)
+		}
+	}()
 
 	go func() {
 		runCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
 		defer cancel()
-		if err := runner.Run(runCtx); err != nil {
-			t.Logf("AppRunner failed: %v", err)
+		if runErr := runner.Run(runCtx); runErr != nil {
+			t.Logf("AppRunner failed: %v", runErr)
 		}
 	}()
 
-	if err := testutils.WaitForPort(appPort, 15*time.Second); err != nil {
+	if err = testutils.WaitForPort(appPort, 15*time.Second); err != nil {
 		t.Fatalf("failed waiting for app port: %v", err)
 	}
 
@@ -109,7 +117,12 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start grafana-tempo container : %v", err)
 	}
-	defer tempo.Stop(context.Background())
+
+	defer func() {
+		if err = tempo.Stop(context.Background()); err != nil {
+			t.Logf("Failed to stop tempo container: %v", err)
+		}
+	}()
 
 	tempoOtlpHttpAddr, err := tempo.GetContainerOTLPHttpAddress(ctx)
 	if err != nil {
@@ -126,7 +139,11 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	if err != nil {
 		panic(fmt.Errorf("error creating AppRunnerConfig for app1: %w", err))
 	}
-	defer app1ConfigCleanup(context.Background())
+	defer func() {
+		if err = app1ConfigCleanup(context.Background()); err != nil {
+			t.Logf("app1ConfigCleanup func call failed : %v", err)
+		}
+	}()
 
 	app1 := newTestApp("app1", app1Port, newSimpleTestService(app2Port))
 	app1Runner, _ := apprunner.NewAppRunner(app1, app.EmptyAppConf, app1Config...)
@@ -136,7 +153,11 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	if err != nil {
 		panic(fmt.Errorf("error creating AppRunnerConfig for app2: %w", err))
 	}
-	defer app2ConfigCleanup(context.Background())
+	defer func() {
+		if err = app2ConfigCleanup(context.Background()); err != nil {
+			t.Logf("app2ConfigCleanup func call failed : %v", err)
+		}
+	}()
 
 	app2 := newTestApp("app2", app2Port, nil)
 	app2Runner, _ := apprunner.NewAppRunner(app2, app.EmptyAppConf, app2Config...)
@@ -146,22 +167,22 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		if err := app1Runner.Run(ctx); err != nil {
-			t.Logf("AppRunner failed to start app1: %v", err)
+		if runErr := app1Runner.Run(ctx); runErr != nil {
+			t.Logf("AppRunner failed to start app1: %v", runErr)
 		}
 	}()
 	go func() {
 		defer wg.Done()
-		if err := app2Runner.Run(ctx); err != nil {
-			t.Logf("AppRunner failed to start app2: %v", err)
+		if runErr := app2Runner.Run(ctx); runErr != nil {
+			t.Logf("AppRunner failed to start app2: %v", runErr)
 		}
 	}()
 
-	if err := testutils.WaitForPort(app1Port, 15*time.Second); err != nil {
+	if err = testutils.WaitForPort(app1Port, 15*time.Second); err != nil {
 		t.Fatalf("failed waiting for app1 port: %v", err)
 	}
 
-	if err := testutils.WaitForPort(app2Port, 15*time.Second); err != nil {
+	if err = testutils.WaitForPort(app2Port, 15*time.Second); err != nil {
 		t.Fatalf("failed waiting for app2 port: %v", err)
 	}
 
@@ -308,7 +329,7 @@ type simpleTestService struct {
 }
 
 func (t simpleTestService) invokeExternalService(ctx context.Context) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://localhost:%d/", t.externalPort), http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://localhost:%d/", t.externalPort), http.NoBody)
 	if err != nil {
 		return "", fmt.Errorf("Failed to create HTTP request: %w", err)
 	}
@@ -321,20 +342,18 @@ func (t simpleTestService) invokeExternalService(ctx context.Context) (string, e
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("Failed to read HTTP resp body: %w", err)
 	}
 	return string(bodyBytes), nil
 }
 
-func createAppRunnerConfig(tracerSvcName, tracerHost string, tracerPort, metricsAppPort int, optApps ...app.App) (
-	[]apprunner.AppRunnerOption, func(context.Context) error, error) {
+func createAppRunnerConfig(tracerName, tracerHost string, tracerPort, metricsAppPort int, optApps ...app.App) ([]apprunner.AppRunnerOption, func(context.Context) error, error) {
 	var config []apprunner.AppRunnerOption
 	var tracerProvider trace.TracerProvider
 	var shutdown func(ctx context.Context) error = func(ctx context.Context) error { return nil }
 	var err error
 
-	config = append(config, apprunner.WithLogger(log_impl.NewSimpleSlogLogger(log_impl.INFO, nil, log_impl.NewTraceIDHandler)))
-	config = append(config, apprunner.WithAdditionalApps(optApps))
+	config = append(config, apprunner.WithLogger(log_impl.NewSimpleSlogLogger(log_impl.INFO, nil, log_impl.NewTraceIDHandler)), apprunner.WithAdditionalApps(optApps))
 
 	if metricsAppPort > 0 {
 		config = append(config, apprunner.WithAdditionalApps(optApps))
@@ -345,10 +364,10 @@ func createAppRunnerConfig(tracerSvcName, tracerHost string, tracerPort, metrics
 			Host:        tracerHost,
 			Port:        tracerPort,
 			ConnType:    app_trace.OTelConnTypeHTTP,
-			ServiceName: tracerSvcName,
+			ServiceName: tracerName,
 		})
 		if err != nil {
-			return config, nil, err
+			return config, nil, fmt.Errorf("error creating TracerProvider: %w", err)
 		}
 		config = append(config, apprunner.WithTracerProvider(tracerProvider))
 	}

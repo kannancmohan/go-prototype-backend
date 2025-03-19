@@ -191,10 +191,8 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 			err := runner.Run(ctx)
 			if !reflect.DeepEqual(tt.expectedAppConf, tt.mainApp.appConf) {
 				t.Errorf("expected AppConf %q, got %q", tt.expectedAppConf, tt.mainApp.appConf)
-			} else {
-				if err != nil {
-					t.Errorf("Expected no error, got: %v", err)
-				}
+			} else if err != nil {
+				t.Errorf("Expected no error, got: %v", err)
 			}
 		})
 	}

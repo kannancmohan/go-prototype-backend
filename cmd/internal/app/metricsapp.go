@@ -3,13 +3,12 @@ package app
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"sync"
-	"time"
-
 	"github.com/kannancmohan/go-prototype-backend/internal/common/log"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"net/http"
+	"sync"
+	"time"
 )
 
 // NewMetricsServerApp creates a new MetricsServerAppConfig with the given options.
