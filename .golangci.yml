@@ -141,7 +141,7 @@ linters:
     - usestdlibvars
     - wastedassign
     - whitespace
-    - wrapcheck
+    - wrapcheck #Checks that errors returned from external packages are wrapped
 
 issues:
   exclude-rules:
