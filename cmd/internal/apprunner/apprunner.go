@@ -109,7 +109,7 @@ func NewAppRunner[T any](mainApp app.App, appsCommonCfg app.AppConf[T], opts ...
 	var appRunnerTracer trace.Tracer
 	if config.tracerProvider != nil {
 		traceProvide := config.tracerProvider
-		appRunnerTracer = traceProvide.Tracer("apprunner") //creating a tracer for appRunner in case it needs tracing
+		appRunnerTracer = traceProvide.Tracer("apprunner") // creating a tracer for appRunner in case it needs tracing
 		for _, ap := range apps {
 			if traceable, ok := ap.(app.Traceable); ok {
 				traceable.SetTracerProvider(traceProvide)

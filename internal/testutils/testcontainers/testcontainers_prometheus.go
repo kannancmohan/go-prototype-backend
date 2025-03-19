@@ -25,7 +25,7 @@ type testPrometheusContainer struct {
 // metricsAppAddr is the endpoint from where prometheus will pulls metrics from.
 func NewPrometheusContainer(metricsAppAddr string) *testPrometheusContainer {
 	if metricsAppAddr == "" {
-		metricsAppAddr = "localhost:9090" //default address of metrics app
+		metricsAppAddr = "localhost:9090" // default address of metrics app
 	}
 	return &testPrometheusContainer{metricsAppAddr: metricsAppAddr}
 }

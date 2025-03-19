@@ -121,7 +121,7 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 		t.Fatalf("failed to get grafana-tempo container api address: %v", err)
 	}
 
-	//APP1
+	// APP1
 	app1Config, app1ConfigCleanup, err := createAppRunnerConfig("app1", tempoOtlpHttpAddr.Host, tempoOtlpHttpAddr.Port, 0)
 	if err != nil {
 		panic(fmt.Errorf("error creating AppRunnerConfig for app1: %w", err))
@@ -131,7 +131,7 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	app1 := newTestApp("app1", app1Port, newSimpleTestService(app2Port))
 	app1Runner, _ := apprunner.NewAppRunner(app1, app.EmptyAppConf, app1Config...)
 
-	//APP2
+	// APP2
 	app2Config, app2ConfigCleanup, err := createAppRunnerConfig("app2", tempoOtlpHttpAddr.Host, tempoOtlpHttpAddr.Port, 0)
 	if err != nil {
 		panic(fmt.Errorf("error creating AppRunnerConfig for app2: %w", err))
@@ -141,8 +141,8 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	app2 := newTestApp("app2", app2Port, nil)
 	app2Runner, _ := apprunner.NewAppRunner(app2, app.EmptyAppConf, app2Config...)
 
-	//execute both apps
-	var wg sync.WaitGroup //to wait for the apps to shutdown properly
+	// execute both apps
+	var wg sync.WaitGroup // to wait for the apps to shutdown properly
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
@@ -165,7 +165,7 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 		t.Fatalf("failed waiting for app2 port: %v", err)
 	}
 
-	//invoke app1's endpoint which internally invokes the app2's endpoint as well
+	// invoke app1's endpoint which internally invokes the app2's endpoint as well
 	retryDelay := 2 * time.Second
 	appUrl := fmt.Sprintf("http://%s:%d/", "localhost", app1Port)
 	_, err = testutils.RetryGetReq(appUrl, "", http.StatusOK, 2, retryDelay)
@@ -229,7 +229,7 @@ func (e *testApp) Run(ctx context.Context) error {
 		e.log.WithContext(r.Context()).Info("Incoming request", "app", e.name)
 
 		if e.requestCounter != nil {
-			e.requestCounter.Inc() //increment prometheus counter metrics
+			e.requestCounter.Inc() // increment prometheus counter metrics
 		}
 
 		if e.service != nil {
@@ -243,7 +243,7 @@ func (e *testApp) Run(ctx context.Context) error {
 	})
 
 	mux.Handle("/", otelhttp.NewHandler(testHandler, e.name+"_handle-request", otelhttp.WithTracerProvider(e.tp)))
-	//mux.Handle("/", otelhttp.NewHandler(testHandler, "handle-request"))
+	// mux.Handle("/", otelhttp.NewHandler(testHandler, "handle-request"))
 	e.server = &http.Server{
 		Addr:              fmt.Sprintf(":%d", e.port),
 		Handler:           mux,
@@ -296,7 +296,7 @@ func newSimpleTestService(externalServicePort int) simpleTestService {
 	return simpleTestService{
 		externalPort: externalServicePort,
 		httpClient: &http.Client{
-			//the otelhttp.NewTransport will automatically injected trace context into outgoing requests
+			// the otelhttp.NewTransport will automatically injected trace context into outgoing requests
 			Transport: otelhttp.NewTransport(http.DefaultTransport),
 		},
 	}
