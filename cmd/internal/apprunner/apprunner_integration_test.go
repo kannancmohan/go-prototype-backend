@@ -45,11 +45,7 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start prometheus container : %v", err)
 	}
-	defer func() {
-		if err = promContainer.Stop(context.Background()); err != nil {
-			t.Logf("Failed to stop container: %v", err)
-		}
-	}()
+	defer promContainer.Stop(context.Background())
 
 	containerAddr, err := promContainer.GetContainerAddress(ctx)
 	if err != nil {
@@ -62,11 +58,7 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 		apprunner.WithMetricsApp(app.NewMetricsServerApp(app.WithPort(metricsAppPort))),
 		apprunner.WithLogger(log_impl.NewSimpleSlogLogger(log_impl.INFO, nil)),
 	)
-	defer func() {
-		if err = runner.StopApps(); err != nil {
-			t.Logf("Failed to stop apps: %v", err)
-		}
-	}()
+	defer runner.StopApps()
 
 	go func() {
 		runCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
@@ -117,12 +109,7 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start grafana-tempo container : %v", err)
 	}
-
-	defer func() {
-		if err = tempo.Stop(context.Background()); err != nil {
-			t.Logf("Failed to stop tempo container: %v", err)
-		}
-	}()
+	defer tempo.Stop(context.Background())
 
 	tempoOtlpHttpAddr, err := tempo.GetContainerOTLPHttpAddress(ctx)
 	if err != nil {
@@ -139,11 +126,7 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	if err != nil {
 		panic(fmt.Errorf("error creating AppRunnerConfig for app1: %w", err))
 	}
-	defer func() {
-		if err = app1ConfigCleanup(context.Background()); err != nil {
-			t.Logf("app1ConfigCleanup func call failed : %v", err)
-		}
-	}()
+	defer app1ConfigCleanup(context.Background())
 
 	app1 := newTestApp("app1", app1Port, newSimpleTestService(app2Port))
 	app1Runner, _ := apprunner.NewAppRunner(app1, app.EmptyAppConf, app1Config...)
@@ -153,11 +136,7 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	if err != nil {
 		panic(fmt.Errorf("error creating AppRunnerConfig for app2: %w", err))
 	}
-	defer func() {
-		if err = app2ConfigCleanup(context.Background()); err != nil {
-			t.Logf("app2ConfigCleanup func call failed : %v", err)
-		}
-	}()
+	defer app2ConfigCleanup(context.Background())
 
 	app2 := newTestApp("app2", app2Port, nil)
 	app2Runner, _ := apprunner.NewAppRunner(app2, app.EmptyAppConf, app2Config...)
@@ -197,7 +176,7 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	queryParams := url.Values{"service.name": {"app1"}}
 	tempoSearchUrl := fmt.Sprintf("http://%s/api/search?%s", tempoApiAddr.Address, queryParams.Encode())
 
-	searchResp, err := testutils.RetryGetReqForJson[searchBySvcNameResp](tempoSearchUrl, "app1", http.StatusOK, 10, retryDelay)
+	searchResp, err := testutils.RetryGetReqForJSON[searchBySvcNameResp](tempoSearchUrl, "app1", http.StatusOK, 10, retryDelay)
 	if err != nil {
 		t.Error("expected given value in tempo response, received error instead.", err.Error())
 	}
@@ -207,7 +186,7 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 
 	traceID := searchResp.Traces[0].TraceID
 	getByTraceIDUrl := fmt.Sprintf("http://%s/api/traces/%s", tempoApiAddr.Address, traceID)
-	traceResp, err := testutils.RetryGetReqForJson[getTraceByIDResp](getByTraceIDUrl, "app1", http.StatusOK, 10, retryDelay)
+	traceResp, err := testutils.RetryGetReqForJSON[getTraceByIDResp](getByTraceIDUrl, "app1", http.StatusOK, 10, retryDelay)
 	if err != nil {
 		t.Errorf("expected a valid json response for the given traceID:%q, received error instead.%v", traceID, err.Error())
 	}

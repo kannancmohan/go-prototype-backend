@@ -13,6 +13,7 @@ import (
 	"time"
 )
 
+// WaitForPort checks for port until timeout duration is reached
 func WaitForPort(port int, timeout time.Duration) error {
 	start := time.Now()
 	for {
@@ -67,9 +68,9 @@ func RetryGetReq(url, expectedString string, expectedStatusCode, maxRetries int,
 	return "", fmt.Errorf("max retries reached")
 }
 
-// RetryGetReqForJson is a generic function that performs an HTTP GET request with retries.
+// RetryGetReqForJSON is a generic function that performs an HTTP GET request with retries.
 // It checks if the JSON response contains a specific field and returns the marshaled JSON according to the generic type T.
-func RetryGetReqForJson[T any](url, expectedField string, expectedStatusCode, maxRetries int, retryDelay time.Duration) (*T, error) {
+func RetryGetReqForJSON[T any](url, expectedField string, expectedStatusCode, maxRetries int, retryDelay time.Duration) (*T, error) {
 	client := &http.Client{}
 	ctx := context.Background()
 

@@ -109,7 +109,7 @@ linters:
     - forcetypeassert
     - goconst
     - gocritic
-    - gocyclo
+    - gocyclo #checks the cyclomatic complexity of functions
     - godot #Check if comments end in a period
     - gofumpt
     - goimports
