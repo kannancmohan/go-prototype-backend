@@ -1,5 +1,5 @@
 let
-    nixpkgs = fetchTarball "https://github.com/NixOS/nixpkgs/tarball/nixos-24.05";
+    nixpkgs = fetchTarball "https://github.com/NixOS/nixpkgs/tarball/nixos-24.11";
     pkgs = import nixpkgs { config = {}; overlays = []; };
     isMacOS = pkgs.stdenv.hostPlatform.system == "darwin";
     remoteDockerHost = "ssh://ubuntu@192.168.0.30"; ## set this if you want to use remote docker, else set it to ""
@@ -9,7 +9,7 @@ pkgs.mkShellNoCC {
     packages = with pkgs; [
         pkgs.tree # optional
         ## added for golang
-        pkgs.go_1_23
+        pkgs.go #version 1.23.6
         pkgs.delve # debugger for Go
         pkgs.air # hot reload for Go
         pkgs.clang # added for vscode Go extension to work

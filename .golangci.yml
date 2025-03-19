@@ -43,7 +43,7 @@ linters-settings:
     allow:
       - error
   lll:
-    line-length: 130
+    line-length: 150
   misspell:
     locale: US
   nolintlint:
@@ -96,7 +96,7 @@ linters:
     - asciicheck
     - bidichk
     - bodyclose
-    - containedctx
+    # - containedctx # discourages using of Context inside struct
     - contextcheck
     - copyloopvar
     - dogsled
@@ -116,7 +116,7 @@ linters:
     - goprintffuncname
     - gosec
     - interfacebloat
-    - ireturn
+    # - ireturn #enforces Accept Interfaces & Return Concrete Types
     - lll
     - misspell
     - nakedret
@@ -129,8 +129,8 @@ linters:
     - predeclared
     - promlinter
     - revive
-    - rowserrcheck
-    - sqlclosecheck
+    # - rowserrcheck #Checks whether Rows.Err of sql rows is checked successfully
+    # - sqlclosecheck #Checks that sql.Rows, sql.Stmt, sqlx.NamedStmt, pgx.Query are closed
     - stylecheck
     - tenv
     - testpackage

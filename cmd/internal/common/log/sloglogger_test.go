@@ -23,7 +23,7 @@ func TestSlogLogger(t *testing.T) {
 	}{
 		{
 			name:          "Test Info",
-			loggerMethod:  (log.Logger).Info,
+			loggerMethod:  log.Logger.Info,
 			inputMsg:      "test info message",
 			inputArgs:     []any{"info-key", "info-value"},
 			expectedMsg:   "test info message",
@@ -32,7 +32,7 @@ func TestSlogLogger(t *testing.T) {
 		},
 		{
 			name:          "Test Error",
-			loggerMethod:  (log.Logger).Error,
+			loggerMethod:  log.Logger.Error,
 			inputMsg:      "test error message",
 			inputArgs:     []any{"error-key", "error-value"},
 			expectedMsg:   "test error message",
@@ -41,7 +41,7 @@ func TestSlogLogger(t *testing.T) {
 		},
 		{
 			name:          "Test Debug",
-			loggerMethod:  (log.Logger).Debug,
+			loggerMethod:  log.Logger.Debug,
 			inputMsg:      "test debug message",
 			inputArgs:     []any{"debug-key", "debug-value"},
 			expectedMsg:   "test debug message",
@@ -50,7 +50,7 @@ func TestSlogLogger(t *testing.T) {
 		},
 		{
 			name:          "Test Warn",
-			loggerMethod:  (log.Logger).Warn,
+			loggerMethod:  log.Logger.Warn,
 			inputMsg:      "test warn message",
 			inputArgs:     []any{"warn-key", "warn-value"},
 			expectedMsg:   "test warn message",
@@ -88,28 +88,28 @@ func TestSlogLoggerWithContext(t *testing.T) {
 	const testContextKey contextKey = "testContextKey1"
 
 	tests := []struct {
-		name                 string
-		loggerMethod         func(logger log.Logger, msg string, args ...any)
-		inputMsg             string
-		inputArgs            []any
-		inputContextArgs     []any
-		expectedMsg          string
-		expectedKey          string
-		expectedValue        string
-		expectedContextKey   string
-		expectedContextValue string
+		name             string
+		loggerMethod     func(logger log.Logger, msg string, args ...any)
+		inputMsg         string
+		inputArgs        []any
+		inputCtxArgs     []any
+		expectedMsg      string
+		expectedKey      string
+		expectedValue    string
+		expectedCtxKey   string
+		expectedCtxValue string
 	}{
 		{
-			name:                 "Test info log using WithContext",
-			loggerMethod:         (log.Logger).Info,
-			inputMsg:             "test info message with context",
-			inputArgs:            []any{"info-key", "info-value"},
-			inputContextArgs:     []any{testContextKey, "info-ctx-value"},
-			expectedMsg:          "test info message with context",
-			expectedKey:          "info-key",
-			expectedValue:        "info-value",
-			expectedContextKey:   string(testContextKey),
-			expectedContextValue: "info-ctx-value",
+			name:             "Test info log using WithContext",
+			loggerMethod:     log.Logger.Info,
+			inputMsg:         "test info message with context",
+			inputArgs:        []any{"info-key", "info-value"},
+			inputCtxArgs:     []any{testContextKey, "info-ctx-value"},
+			expectedMsg:      "test info message with context",
+			expectedKey:      "info-key",
+			expectedValue:    "info-value",
+			expectedCtxKey:   string(testContextKey),
+			expectedCtxValue: "info-ctx-value",
 		},
 	}
 
@@ -117,14 +117,16 @@ func TestSlogLoggerWithContext(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
 
-			ctx := context.WithValue(context.Background(), tt.inputContextArgs[0], tt.inputContextArgs[1])
+			ctx := context.WithValue(context.Background(), tt.inputCtxArgs[0], tt.inputCtxArgs[1])
 			originalLogger := log_impl.NewSimpleSlogLogger(log_impl.DEBUG, &buf, func(h slog.Handler) slog.Handler {
 				return log_impl.NewCustomAttrHandler(h, string(testContextKey), testContextKey)
 			})
 			loggerWithContext := originalLogger.WithContext(ctx)
 
-			tt.loggerMethod(loggerWithContext, tt.inputMsg, tt.inputArgs...) //invoking logger fun(eg Info) using loggerWithContext
-			tt.loggerMethod(originalLogger, "original log", tt.inputArgs...) //invoking logger fun(eg Info) using original originalLogger
+			// invoking logger fun(eg Info) using loggerWithContext
+			tt.loggerMethod(loggerWithContext, tt.inputMsg, tt.inputArgs...)
+			// invoking logger fun(eg Info) using original originalLogger
+			tt.loggerMethod(originalLogger, "original log", tt.inputArgs...)
 
 			var logEntries []map[string]any
 			dec := json.NewDecoder(&buf)
@@ -142,20 +144,20 @@ func TestSlogLoggerWithContext(t *testing.T) {
 			}
 
 			// ✅ Check the log generated using loggerWithContext - should HAVE context attributes
-			contextLog := logEntries[0]
+			ctxLog := logEntries[0]
 			// Verify the log message
-			if contextLog["msg"] != tt.expectedMsg {
-				t.Errorf("expected message %q, got %q", tt.expectedMsg, contextLog["msg"])
+			if ctxLog["msg"] != tt.expectedMsg {
+				t.Errorf("expected message %q, got %q", tt.expectedMsg, ctxLog["msg"])
 			}
 
 			// Verify the log key-value pair
-			if contextLog[tt.expectedKey] != tt.expectedValue {
-				t.Errorf("expected %q=%q, got %q=%q", tt.expectedKey, tt.expectedValue, tt.expectedKey, contextLog[tt.expectedKey])
+			if ctxLog[tt.expectedKey] != tt.expectedValue {
+				t.Errorf("expected %q=%q, got %q=%q", tt.expectedKey, tt.expectedValue, tt.expectedKey, ctxLog[tt.expectedKey])
 			}
 
 			// Verify the context key-value pair
-			if contextLog[tt.expectedContextKey] != tt.expectedContextValue {
-				t.Errorf("expected context %q=%q, got %q=%q", tt.expectedContextKey, tt.expectedContextValue, tt.expectedContextKey, contextLog[tt.expectedContextKey])
+			if ctxLog[tt.expectedCtxKey] != tt.expectedCtxValue {
+				t.Errorf("expected context %q=%q, got %q=%q", tt.expectedCtxKey, tt.expectedCtxValue, tt.expectedCtxKey, ctxLog[tt.expectedCtxKey])
 			}
 
 			// ✅ Check the log generated using original logger - should NOT have context attributes
@@ -163,8 +165,8 @@ func TestSlogLoggerWithContext(t *testing.T) {
 			if originalLog["msg"] != "original log" {
 				t.Errorf("expected original log message %q, got %q", "original log", originalLog["msg"])
 			}
-			if _, exists := originalLog[tt.expectedContextKey]; exists {
-				t.Errorf("original log should NOT have context key %q, but it does", tt.expectedContextKey)
+			if _, exists := originalLog[tt.expectedCtxKey]; exists {
+				t.Errorf("original log should NOT have context key %q, but it does", tt.expectedCtxKey)
 			}
 		})
 	}
@@ -185,7 +187,7 @@ func TestSlogLoggerWith(t *testing.T) {
 	}{
 		{
 			name:              "Test info log using with",
-			loggerMethod:      (log.Logger).Info,
+			loggerMethod:      log.Logger.Info,
 			inputMsg:          "test info message with context",
 			inputArgs:         []any{"info-key", "info-value"},
 			inputWithArgs:     []any{"info-addition-key", "info-addition-value"},
@@ -204,8 +206,10 @@ func TestSlogLoggerWith(t *testing.T) {
 			originalLogger := log_impl.NewSimpleSlogLogger(log_impl.DEBUG, &buf)
 			loggerWithFields := originalLogger.With(tt.inputWithArgs...)
 
-			tt.loggerMethod(loggerWithFields, tt.inputMsg, tt.inputArgs...)  //invoking logger fun(eg Info) using loggerWithFields
-			tt.loggerMethod(originalLogger, "original log", tt.inputArgs...) //invoking logger fun(eg Info) using original originalLogger
+			// invoking logger fun(eg Info) using loggerWithFields
+			tt.loggerMethod(loggerWithFields, tt.inputMsg, tt.inputArgs...)
+			// invoking logger fun(eg Info) using original originalLogger
+			tt.loggerMethod(originalLogger, "original log", tt.inputArgs...)
 
 			var logEntries []map[string]any
 			dec := json.NewDecoder(&buf)

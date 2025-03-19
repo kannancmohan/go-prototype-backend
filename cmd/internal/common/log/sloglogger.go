@@ -13,10 +13,10 @@ import (
 type Level string
 
 const (
-	DEBUG = Level("debug")
-	INFO  = Level("info")
-	WARN  = Level("warn")
-	ERROR = Level("error")
+	DEBUG Level = "debug"
+	INFO  Level = "info"
+	WARN  Level = "warn"
+	ERROR Level = "error"
 )
 
 var _ log.Logger = slogLogger{}
