@@ -135,13 +135,11 @@ func TestAppRunner_Run(t *testing.T) {
 					t.Errorf("Expected no error, got: %v", err)
 				}
 			}
-
 		})
 	}
 }
 
 func TestAppRunner_WithAppConf(t *testing.T) {
-
 	tests := []struct {
 		name            string
 		mainApp         *mockApp

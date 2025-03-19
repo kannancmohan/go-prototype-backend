@@ -90,7 +90,6 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 	if err != nil {
 		t.Error("expected 'test_app_requests_total' in prometheus response, received error instead.", err.Error())
 	}
-
 }
 
 func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
@@ -197,7 +196,6 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 
 	cancel()  // Cancel the context to signal the apps to shut down
 	wg.Wait() // Wait for the apps to shut down
-
 }
 
 type testApp struct {
@@ -346,14 +344,13 @@ func createAppRunnerConfig(tracerSvcName, tracerHost string, tracerPort, metrics
 			Host:        tracerHost,
 			Port:        tracerPort,
 			ConnType:    app_trace.OTelConnTypeHTTP,
-			ServiceName: tracerSvcName},
-		)
+			ServiceName: tracerSvcName,
+		})
 		if err != nil {
 			return config, nil, err
 		}
 		config = append(config, apprunner.WithTracerProvider(tracerProvider))
 	}
-
 	return config, shutdown, nil
 }
 

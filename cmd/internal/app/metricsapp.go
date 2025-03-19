@@ -30,6 +30,7 @@ func NewMetricsServerApp(opts ...MetricsServerAppOption) *MetricsServerApp {
 }
 
 var _ App = &MetricsServerApp{}
+
 var _ Loggable = &MetricsServerApp{}
 
 type MetricsServerApp struct {

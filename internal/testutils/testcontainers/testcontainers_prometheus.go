@@ -57,7 +57,6 @@ func (p *testPrometheusContainer) Start(ctx context.Context) error {
 		ContainerRequest: req,
 		Started:          true,
 	})
-
 	if err != nil {
 		return err
 	}

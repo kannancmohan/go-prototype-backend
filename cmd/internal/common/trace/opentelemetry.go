@@ -48,13 +48,13 @@ func NewOTelTracerProvider(cfg OpenTelemetryConfig) (*trace.TracerProvider, OTel
 		exporter, err = otlptracegrpc.New(
 			ctx,
 			otlptracegrpc.WithEndpoint(fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)),
-			otlptracegrpc.WithInsecure(), //TODO check this
+			otlptracegrpc.WithInsecure(), // TODO check this
 		)
 	case OTelConnTypeHTTP:
 		exporter, err = otlptracehttp.New(
 			ctx,
 			otlptracehttp.WithEndpoint(fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)),
-			otlptracehttp.WithInsecure(), //TODO check this
+			otlptracehttp.WithInsecure(), // TODO check this
 		)
 	default:
 		return nil, nil, fmt.Errorf("unsupported connection type: %s", cfg.ConnType)
@@ -81,7 +81,7 @@ func NewOTelTracerProvider(cfg OpenTelemetryConfig) (*trace.TracerProvider, OTel
 		trace.WithResource(res),
 	)
 
-	//Set TracerProvider globally. This allows creation of tracers and spans in any part of app without the need of passing trace.TracerProvider
+	// Set TracerProvider globally. This allows creation of tracers and spans in any part of app without the need of passing trace.TracerProvider
 	// Also otelhttp.NewHandler could automatically extract/create trace context from incoming request without explicitly configuring trace.TracerProvider in handler
 	//otel.SetTracerProvider(tp) //commented since tp is set via otelhttp.WithTracerProvider(tp) when configuring otelhttp.NewHandler
 

@@ -102,5 +102,7 @@ func (t *simpleApp) SetTracerProvider(tp trace.TracerProvider) {
 }
 
 var _ app.Loggable = &simpleApp{}
+
 var _ app.AppConfigSetter[simpleAppEnvVar] = &simpleApp{}
+
 var _ app.Traceable = &simpleApp{}

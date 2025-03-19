@@ -26,6 +26,7 @@ func (NoOpLogger) Error(string, ...any) {}
 func (n NoOpLogger) With(...any) Logger {
 	return n
 }
+
 func (n NoOpLogger) WithContext(context.Context) Logger {
 	return n
 }

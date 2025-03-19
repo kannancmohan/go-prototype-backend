@@ -30,9 +30,9 @@ func WithMetricsApp(metricsApp *app.MetricsServerApp) AppRunnerOption {
 	}
 }
 
-func WithLogger(log log.Logger) AppRunnerOption {
+func WithLogger(l log.Logger) AppRunnerOption {
 	return func(c *appRunnerConfig) {
-		c.log = log
+		c.log = l
 	}
 }
 
