@@ -62,7 +62,7 @@ type appRunner struct {
 	mu       sync.Mutex    // Mutex to protect the apps slice
 }
 
-func NewAppRunner[T any](mainApp app.App, appsCommonCfg *app.AppConf[T], opts ...AppRunnerOption) (*appRunner, error) {
+func NewAppRunner[T any](mainApp app.App, appsCommonCfg app.AppConf[T], opts ...AppRunnerOption) (*appRunner, error) {
 	if mainApp == nil {
 		return nil, fmt.Errorf("mainApp cannot be nil")
 	}
@@ -100,10 +100,8 @@ func NewAppRunner[T any](mainApp app.App, appsCommonCfg *app.AppConf[T], opts ..
 		if loggableApp, ok := ap.(app.Loggable); ok {
 			loggableApp.SetLogger(config.log)
 		}
-		if appsCommonCfg != nil {
-			if configurableApp, ok := ap.(app.AppConfigSetter[T]); ok {
-				configurableApp.SetAppConf(appsCommonCfg)
-			}
+		if configurableApp, ok := ap.(app.AppConfigSetter[T]); ok {
+			configurableApp.SetAppConf(appsCommonCfg)
 		}
 	}
 

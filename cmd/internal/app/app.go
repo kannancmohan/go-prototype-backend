@@ -9,13 +9,13 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var EmptyAppConf *AppConf[struct{}]
+var EmptyAppConf AppConf[struct{}]
 
-func NewAppConf[T any](appName string, envVar T) (*AppConf[T], error) {
+func NewAppConf[T any](appName string, envVar T) (AppConf[T], error) {
 	if appName == "" {
-		return nil, fmt.Errorf("mandatory fled 'appName' missing ")
+		return AppConf[T]{}, fmt.Errorf("mandatory fled 'appName' missing ")
 	}
-	return &AppConf[T]{Name: appName, EnvVar: envVar}, nil
+	return AppConf[T]{Name: appName, EnvVar: envVar}, nil
 }
 
 type AppConf[T any] struct {
@@ -42,7 +42,7 @@ type Loggable interface {
 // AppConfigSetter . apps that need AppConf should implement this interface
 // appRunner will automatically set AppConf to apps that implement this interface
 type AppConfigSetter[T any] interface {
-	SetAppConf(*AppConf[T])
+	SetAppConf(AppConf[T])
 }
 
 // Traceable . apps that need tracing should implement this interface

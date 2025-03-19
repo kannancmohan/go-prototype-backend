@@ -30,7 +30,7 @@ type simpleApp struct {
 	shutdownTimeout time.Duration
 	server          *http.Server
 	log             log.Logger
-	appConf         *app.AppConf[simpleAppEnvVar]
+	appConf         app.AppConf[simpleAppEnvVar]
 	tp              trace.TracerProvider
 	mu              sync.Mutex
 }
@@ -93,7 +93,7 @@ func (t *simpleApp) SetLogger(logger log.Logger) {
 	t.log = logger
 }
 
-func (t *simpleApp) SetAppConf(conf *app.AppConf[simpleAppEnvVar]) {
+func (t *simpleApp) SetAppConf(conf app.AppConf[simpleAppEnvVar]) {
 	t.appConf = conf
 }
 
