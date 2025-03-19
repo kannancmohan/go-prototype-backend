@@ -62,7 +62,7 @@ func (s slogLogger) Error(msg string, args ...any) {
 	s.logger.ErrorContext(s.ctx, msg, args...)
 }
 
-// With returns a new *SLogLogger with the provided key/value pairs attached
+// With returns a new *SLogLogger with the provided key/value pairs attached.
 func (s slogLogger) With(args ...any) log.Logger {
 	return &slogLogger{
 		logger: s.logger.With(args...),
@@ -79,7 +79,7 @@ func (s slogLogger) WithContext(ctx context.Context) log.Logger {
 	}
 }
 
-// custom slog handler to automatically add traceID to log
+// custom slog handler to automatically add traceID to log.
 type traceIDHandler struct {
 	traceIDKey  string
 	nextHandler slog.Handler

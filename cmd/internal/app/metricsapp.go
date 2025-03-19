@@ -75,7 +75,7 @@ func WithShutdownTimeout(timeout time.Duration) MetricsServerAppOption {
 	}
 }
 
-// RegisterCollectors. custom function to register app specific metrics collector
+// RegisterCollectors. custom function to register app specific metrics collector.
 func (e *MetricsServerApp) RegisterCollectors(metrics ...prometheus.Collector) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()

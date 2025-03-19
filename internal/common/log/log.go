@@ -13,7 +13,7 @@ type Logger interface {
 	WithContext(context.Context) Logger
 }
 
-// NoOpLogger. an implementation of Logger which does nothing
+// NoOpLogger. an implementation of Logger which does nothing.
 type NoOpLogger struct{}
 
 var _ Logger = &NoOpLogger{}

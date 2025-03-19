@@ -110,7 +110,7 @@ linters:
     - goconst
     - gocritic
     - gocyclo
-    - godot
+    - godot #Check if comments end in a period
     - gofumpt
     - goimports
     - goprintffuncname
