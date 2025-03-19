@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-// Logger is a interface that exposes methods for writing logs
+// Logger is a interface that exposes methods for writing logs.
 type Logger interface {
 	Info(msg string, args ...any)
 	Error(msg string, args ...any)
@@ -19,24 +19,24 @@ type NoOpLogger struct{}
 
 var _ Logger = &NoOpLogger{}
 
-// Debug does nothing
+// Debug does nothing.
 func (NoOpLogger) Debug(string, ...any) {}
 
-// Info does nothing
+// Info does nothing.
 func (NoOpLogger) Info(string, ...any) {}
 
-// Warn does nothing
+// Warn does nothing.
 func (NoOpLogger) Warn(string, ...any) {}
 
-// Error does nothing
+// Error does nothing.
 func (NoOpLogger) Error(string, ...any) {}
 
-// With returns original NoOpLogger
+// With returns original NoOpLogger.
 func (n NoOpLogger) With(...any) Logger {
 	return n
 }
 
-// WithContext returns original NoOpLogger
+// WithContext returns original NoOpLogger.
 func (n NoOpLogger) WithContext(context.Context) Logger {
 	return n
 }

@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// WaitForPort checks for port until timeout duration is reached
+// WaitForPort checks for port until timeout duration is reached.
 func WaitForPort(port int, timeout time.Duration) error {
 	start := time.Now()
 	for {

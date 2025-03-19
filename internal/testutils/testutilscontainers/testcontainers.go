@@ -1,4 +1,4 @@
-package testcontainers_testutils
+package testutilscontainers
 
 import (
 	"context"

@@ -18,7 +18,7 @@ import (
 	app_trace "github.com/kannancmohan/go-prototype-backend/cmd/internal/common/trace"
 	"github.com/kannancmohan/go-prototype-backend/internal/common/log"
 	"github.com/kannancmohan/go-prototype-backend/internal/testutils"
-	tc_testutils "github.com/kannancmohan/go-prototype-backend/internal/testutils/testcontainers"
+	tc_testutils "github.com/kannancmohan/go-prototype-backend/internal/testutils/testutilscontainers"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
