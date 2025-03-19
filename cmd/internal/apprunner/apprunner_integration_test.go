@@ -264,7 +264,6 @@ func (e *testApp) Run(ctx context.Context) error {
 	})
 
 	mux.Handle("/", otelhttp.NewHandler(testHandler, e.name+"_handle-request", otelhttp.WithTracerProvider(e.tp)))
-	// mux.Handle("/", otelhttp.NewHandler(testHandler, "handle-request"))
 	e.server = &http.Server{
 		Addr:              fmt.Sprintf(":%d", e.port),
 		Handler:           mux,
@@ -290,7 +289,7 @@ func (e *testApp) Stop(ctx context.Context) error {
 		return nil // Server was never started
 	}
 
-	if err := e.server.Shutdown(context.Background()); err != nil {
+	if err := e.server.Shutdown(ctx); err != nil {
 		return fmt.Errorf("failed to stop test server: %w", err)
 	}
 	e.log.Info("stopped the app", "appName", e.name)
@@ -347,13 +346,19 @@ func (t simpleTestService) invokeExternalService(ctx context.Context) (string, e
 	return string(bodyBytes), nil
 }
 
-func createAppRunnerConfig(tracerName, tracerHost string, tracerPort, metricsAppPort int, optApps ...app.App) ([]apprunner.AppRunnerOption, func(context.Context) error, error) {
+func createAppRunnerConfig(tracerName, tracerHost string, tracerPort, metricsAppPort int,
+	optApps ...app.App) ([]apprunner.AppRunnerOption, func(context.Context) error, error) {
+
 	var config []apprunner.AppRunnerOption
 	var tracerProvider trace.TracerProvider
 	var shutdown func(ctx context.Context) error = func(ctx context.Context) error { return nil }
 	var err error
 
-	config = append(config, apprunner.WithLogger(log_impl.NewSimpleSlogLogger(log_impl.INFO, nil, log_impl.NewTraceIDHandler)), apprunner.WithAdditionalApps(optApps))
+	config = append(
+		config,
+		apprunner.WithLogger(log_impl.NewSimpleSlogLogger(log_impl.INFO, nil, log_impl.NewTraceIDHandler)),
+		apprunner.WithAdditionalApps(optApps),
+	)
 
 	if metricsAppPort > 0 {
 		config = append(config, apprunner.WithAdditionalApps(optApps))
