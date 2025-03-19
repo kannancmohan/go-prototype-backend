@@ -33,7 +33,7 @@ func RetryGetReq(url, expectedString string, expectedStatusCode, maxRetries int,
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
 
-		req, err := http.NewRequest(http.MethodGet, url, nil)
+		req, err := http.NewRequest(http.MethodGet, url, http.NoBody)
 		if err != nil {
 			return "", fmt.Errorf("failed to create HTTP request: %w", err)
 		}
@@ -72,7 +72,7 @@ func RetryGetReqForJson[T any](url, expectedField string, expectedStatusCode, ma
 	client := &http.Client{}
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		req, err := http.NewRequest(http.MethodGet, url, nil)
+		req, err := http.NewRequest(http.MethodGet, url, http.NoBody)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create HTTP request: %w", err)
 		}

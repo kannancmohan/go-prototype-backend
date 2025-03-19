@@ -308,7 +308,7 @@ type simpleTestService struct {
 }
 
 func (t simpleTestService) invokeExternalService(ctx context.Context) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://localhost:%d/", t.externalPort), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://localhost:%d/", t.externalPort), http.NoBody)
 	if err != nil {
 		return "", fmt.Errorf("Failed to create HTTP request: %w", err)
 	}
