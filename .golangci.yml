@@ -157,7 +157,7 @@ issues:
       text: "(unexported-return|dot-imports|unchecked-type-assertion)"
       linters:
         - revive
-  include:
+  include: # list of Default Exclusions. check # a revive exclusion. https://golangci-lint.run/usage/false-positives/#default-exclusions
     - EXC0012
     - EXC0014
   exclude-dirs:

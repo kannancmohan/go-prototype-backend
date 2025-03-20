@@ -34,14 +34,16 @@ func NewSimpleSlogLogger(logLevel Level, writer io.Writer, customHandlers ...fun
 	if writer == nil {
 		writer = os.Stdout
 	}
+
+	var level slog.Level
 	var handler slog.Handler
-	if logLevel == "" {
-		handler = slog.NewJSONHandler(writer, &slog.HandlerOptions{})
-	} else {
-		var level slog.Level
-		_ = level.UnmarshalText([]byte(logLevel)) //TODO handler error
+
+	if err := level.UnmarshalText([]byte(logLevel)); err == nil {
 		handler = slog.NewJSONHandler(writer, &slog.HandlerOptions{Level: level})
+	} else {
+		handler = slog.NewJSONHandler(writer, &slog.HandlerOptions{})
 	}
+
 	// Apply custom handlers in sequence
 	for _, customHandler := range customHandlers {
 		handler = customHandler(handler)

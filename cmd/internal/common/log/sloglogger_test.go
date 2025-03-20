@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"testing"
 
@@ -128,14 +129,9 @@ func TestSlogLoggerWithContext(t *testing.T) {
 			// invoking logger fun(eg Info) using original originalLogger
 			tt.loggerMethod(originalLogger, "original log", tt.inputArgs...)
 
-			var logEntries []map[string]any
-			dec := json.NewDecoder(&buf)
-			for dec.More() {
-				var entry map[string]any
-				if err := dec.Decode(&entry); err != nil {
-					t.Fatalf("failed to decode log entry: %v", err)
-				}
-				logEntries = append(logEntries, entry)
+			logEntries, err := getLogs(buf)
+			if err != nil {
+				t.Fatalf("failed to decode log entry: %v", err)
 			}
 
 			// ✅ Expect two log entries (one from original logger, one from loggerWithContext)
@@ -211,14 +207,9 @@ func TestSlogLoggerWith(t *testing.T) {
 			// invoking logger fun(eg Info) using original originalLogger
 			tt.loggerMethod(originalLogger, "original log", tt.inputArgs...)
 
-			var logEntries []map[string]any
-			dec := json.NewDecoder(&buf)
-			for dec.More() {
-				var entry map[string]any
-				if err := dec.Decode(&entry); err != nil {
-					t.Fatalf("failed to decode log entry: %v", err)
-				}
-				logEntries = append(logEntries, entry)
+			logEntries, err := getLogs(buf)
+			if err != nil {
+				t.Fatalf("failed to decode log entry: %v", err)
 			}
 
 			// ✅ Expect two log entries (one from original logger, one from loggerWithContext)
@@ -254,4 +245,17 @@ func TestSlogLoggerWith(t *testing.T) {
 			}
 		})
 	}
+}
+
+func getLogs(buf bytes.Buffer) ([]map[string]any, error) {
+	logEntries := make([]map[string]any, 0, 5)
+	dec := json.NewDecoder(&buf)
+	for dec.More() {
+		var entry map[string]any
+		if err := dec.Decode(&entry); err != nil {
+			return nil, fmt.Errorf("failed to decode log entry: %w", err)
+		}
+		logEntries = append(logEntries, entry)
+	}
+	return logEntries, nil
 }

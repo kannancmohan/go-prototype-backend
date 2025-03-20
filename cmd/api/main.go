@@ -28,7 +28,12 @@ func main() {
 	if err != nil {
 		panic(fmt.Errorf("error creating otel tracer provider: %w", err))
 	}
-	defer shutdown(context.Background())
+	defer func() {
+		shtErr := shutdown(context.Background())
+		if shtErr != nil {
+			logger.Error("failed to shutdown TracerProvider", "error", shtErr.Error())
+		}
+	}()
 
 	runner, err := apprunner.NewAppRunner(
 		NewSimpleApp(9933),
