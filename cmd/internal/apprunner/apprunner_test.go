@@ -17,7 +17,7 @@ import (
 var _ app.AppConfigSetter[any] = &mockApp{}
 
 type mockApp struct {
-	appConf  app.AppConf[any]
+	appConf  app.Conf[any]
 	RunFunc  func(ctx context.Context) error
 	StopFunc func(ctx context.Context) error
 }
@@ -30,7 +30,7 @@ func (m *mockApp) Stop(ctx context.Context) error {
 	return m.StopFunc(ctx)
 }
 
-func (m *mockApp) SetAppConf(conf app.AppConf[any]) {
+func (m *mockApp) SetAppConf(conf app.Conf[any]) {
 	m.appConf = conf
 }
 
@@ -144,9 +144,9 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 		name            string
 		mainApp         *mockApp
 		config          []apprunner.AppRunnerOption
-		inputAppConf    app.AppConf[any]
+		inputAppConf    app.Conf[any]
 		ctxTimeout      time.Duration
-		expectedAppConf app.AppConf[any]
+		expectedAppConf app.Conf[any]
 	}{
 		{
 			name: "Successful Run",
@@ -160,9 +160,9 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 				},
 			},
 			config:          []apprunner.AppRunnerOption{},
-			inputAppConf:    app.AppConf[any]{Name: "test", EnvVar: struct{ EnvVarName1 string }{EnvVarName1: "EnvVarName1"}},
+			inputAppConf:    app.Conf[any]{Name: "test", EnvVar: struct{ EnvVarName1 string }{EnvVarName1: "EnvVarName1"}},
 			ctxTimeout:      1 * time.Second,
-			expectedAppConf: app.AppConf[any]{Name: "test", EnvVar: struct{ EnvVarName1 string }{EnvVarName1: "EnvVarName1"}},
+			expectedAppConf: app.Conf[any]{Name: "test", EnvVar: struct{ EnvVarName1 string }{EnvVarName1: "EnvVarName1"}},
 		},
 		{
 			name: "Successful Run - With empty AppConf",
@@ -176,9 +176,9 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 				},
 			},
 			config:          []apprunner.AppRunnerOption{},
-			inputAppConf:    app.AppConf[any]{},
+			inputAppConf:    app.Conf[any]{},
 			ctxTimeout:      1 * time.Second,
-			expectedAppConf: app.AppConf[any]{},
+			expectedAppConf: app.Conf[any]{},
 		},
 	}
 

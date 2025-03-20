@@ -62,7 +62,7 @@ type appRunner struct {
 	mu       sync.Mutex    // Mutex to protect the apps slice
 }
 
-func NewAppRunner[T any](mainApp app.App, appsCommonCfg app.AppConf[T], opts ...AppRunnerOption) (*appRunner, error) {
+func NewAppRunner[T any](mainApp app.App, appsCommonCfg app.Conf[T], opts ...AppRunnerOption) (*appRunner, error) {
 	if mainApp == nil {
 		return nil, fmt.Errorf("mainApp cannot be nil")
 	}

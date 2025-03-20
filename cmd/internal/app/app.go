@@ -10,18 +10,18 @@ import (
 )
 
 // EmptyAppConf an empty instance of AppConf.
-var EmptyAppConf AppConf[struct{}]
+var EmptyAppConf Conf[struct{}]
 
 // NewAppConf creates a new AppConf.
-func NewAppConf[T any](appName string, envVar T) (AppConf[T], error) {
+func NewAppConf[T any](appName string, envVar T) (Conf[T], error) {
 	if appName == "" {
-		return AppConf[T]{}, fmt.Errorf("mandatory fled 'appName' missing ")
+		return Conf[T]{}, fmt.Errorf("mandatory fled 'appName' missing ")
 	}
-	return AppConf[T]{Name: appName, EnvVar: envVar}, nil
+	return Conf[T]{Name: appName, EnvVar: envVar}, nil
 }
 
-// AppConf creates a new AppConf.
-type AppConf[T any] struct {
+// Conf creates a new Conf.
+type Conf[T any] struct {
 	Name   string
 	EnvVar T
 }
@@ -46,7 +46,7 @@ type Loggable interface {
 // AppConfigSetter . apps that need AppConf should implement this interface
 // appRunner will automatically set AppConf to apps that implement this interface.
 type AppConfigSetter[T any] interface {
-	SetAppConf(AppConf[T])
+	SetAppConf(Conf[T])
 }
 
 // Traceable . apps that need tracing should implement this interface
