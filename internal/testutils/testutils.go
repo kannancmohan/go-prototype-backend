@@ -115,6 +115,7 @@ func RetryGetReqForJSON[T any](url, expectedField string, expectedStatusCode, ma
 	return nil, fmt.Errorf("max retries reached")
 }
 
+// GetFreePorts provides free open ports.
 func GetFreePorts(numPorts int) ([]int, error) {
 	var ports []int
 	for range numPorts {
@@ -135,6 +136,7 @@ func GetFreePorts(numPorts int) ([]int, error) {
 	return ports, nil
 }
 
+// GetLocalIP provides local ip address.
 func GetLocalIP() (string, error) {
 	_, err := os.Stat("/.dockerenv")
 	if err == nil { // If running inside a Docker container, return "localhost".
