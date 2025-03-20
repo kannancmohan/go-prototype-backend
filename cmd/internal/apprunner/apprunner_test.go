@@ -38,7 +38,7 @@ func TestAppRunner_Run(t *testing.T) {
 	tests := []struct {
 		name        string
 		mainApp     *mockApp
-		config      []apprunner.AppRunnerOption
+		config      []apprunner.Option
 		ctxTimeout  time.Duration
 		expectError bool
 		errorMsg    string
@@ -54,7 +54,7 @@ func TestAppRunner_Run(t *testing.T) {
 					return nil
 				},
 			},
-			config:      []apprunner.AppRunnerOption{},
+			config:      []apprunner.Option{},
 			ctxTimeout:  1 * time.Second,
 			expectError: false,
 		},
@@ -68,7 +68,7 @@ func TestAppRunner_Run(t *testing.T) {
 					return nil
 				},
 			},
-			config:      []apprunner.AppRunnerOption{},
+			config:      []apprunner.Option{},
 			ctxTimeout:  1 * time.Second,
 			expectError: true,
 			errorMsg:    "mock app failed",
@@ -84,7 +84,7 @@ func TestAppRunner_Run(t *testing.T) {
 					return nil
 				},
 			},
-			config:      []apprunner.AppRunnerOption{apprunner.WithMetricsApp(app.NewMetricsServerApp())},
+			config:      []apprunner.Option{apprunner.WithMetricsApp(app.NewMetricsServerApp())},
 			ctxTimeout:  1 * time.Second,
 			expectError: false,
 		},
@@ -99,7 +99,7 @@ func TestAppRunner_Run(t *testing.T) {
 					return nil
 				},
 			},
-			config: []apprunner.AppRunnerOption{apprunner.WithAdditionalApps(
+			config: []apprunner.Option{apprunner.WithAdditionalApps(
 				[]app.App{
 					&mockApp{
 						RunFunc: func(ctx context.Context) error {
@@ -143,7 +143,7 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 	tests := []struct {
 		name            string
 		mainApp         *mockApp
-		config          []apprunner.AppRunnerOption
+		config          []apprunner.Option
 		inputAppConf    app.Conf[any]
 		ctxTimeout      time.Duration
 		expectedAppConf app.Conf[any]
@@ -159,7 +159,7 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 					return nil
 				},
 			},
-			config:          []apprunner.AppRunnerOption{},
+			config:          []apprunner.Option{},
 			inputAppConf:    app.Conf[any]{Name: "test", EnvVar: struct{ EnvVarName1 string }{EnvVarName1: "EnvVarName1"}},
 			ctxTimeout:      1 * time.Second,
 			expectedAppConf: app.Conf[any]{Name: "test", EnvVar: struct{ EnvVarName1 string }{EnvVarName1: "EnvVarName1"}},
@@ -175,7 +175,7 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 					return nil
 				},
 			},
-			config:          []apprunner.AppRunnerOption{},
+			config:          []apprunner.Option{},
 			inputAppConf:    app.Conf[any]{},
 			ctxTimeout:      1 * time.Second,
 			expectedAppConf: app.Conf[any]{},

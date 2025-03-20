@@ -323,9 +323,9 @@ func (t simpleTestService) invokeExternalService(ctx context.Context) (string, e
 }
 
 func createAppRunnerConfig(tracerName, tracerHost string, tracerPort, metricsAppPort int,
-	optApps ...app.App) ([]apprunner.AppRunnerOption, func(context.Context) error, error) {
+	optApps ...app.App) ([]apprunner.Option, func(context.Context) error, error) {
 
-	var config []apprunner.AppRunnerOption
+	var config []apprunner.Option
 	var tracerProvider trace.TracerProvider
 	var err error
 

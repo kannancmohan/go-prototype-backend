@@ -13,7 +13,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-type AppRunnerOption func(*appRunnerConfig)
+// Option optional type used by NewAppRunner function.
+type Option func(*appRunnerConfig)
 
 // appRunnerConfig holds the configuration for the appRunner.
 type appRunnerConfig struct {
@@ -24,31 +25,36 @@ type appRunnerConfig struct {
 	exitWait       time.Duration // Maximum duration to wait for apps to stop
 }
 
-func WithMetricsApp(metricsApp *app.MetricsServerApp) AppRunnerOption {
+// WithMetricsApp to set metricsApp.
+func WithMetricsApp(metricsApp *app.MetricsServerApp) Option {
 	return func(c *appRunnerConfig) {
 		c.metricsApp = metricsApp
 	}
 }
 
-func WithLogger(l log.Logger) AppRunnerOption {
+// WithLogger to set logger.
+func WithLogger(l log.Logger) Option {
 	return func(c *appRunnerConfig) {
 		c.log = l
 	}
 }
 
-func WithTracerProvider(tp trace.TracerProvider) AppRunnerOption {
+// WithTracerProvider to set TracerProvider.
+func WithTracerProvider(tp trace.TracerProvider) Option {
 	return func(c *appRunnerConfig) {
 		c.tracerProvider = tp
 	}
 }
 
-func WithAdditionalApps(additionalApps []app.App) AppRunnerOption {
+// WithAdditionalApps to set additional apps.
+func WithAdditionalApps(additionalApps []app.App) Option {
 	return func(c *appRunnerConfig) {
 		c.additionalApps = additionalApps
 	}
 }
 
-func WithExitWait(exitWait time.Duration) AppRunnerOption {
+// WithExitWait to set exitWait.
+func WithExitWait(exitWait time.Duration) Option {
 	return func(c *appRunnerConfig) {
 		c.exitWait = exitWait
 	}
@@ -62,7 +68,7 @@ type appRunner struct {
 	mu       sync.Mutex    // Mutex to protect the apps slice
 }
 
-func NewAppRunner[T any](mainApp app.App, appsCommonCfg app.Conf[T], opts ...AppRunnerOption) (*appRunner, error) {
+func NewAppRunner[T any](mainApp app.App, appsCommonCfg app.Conf[T], opts ...Option) (*appRunner, error) {
 	if mainApp == nil {
 		return nil, fmt.Errorf("mainApp cannot be nil")
 	}
@@ -89,7 +95,10 @@ func NewAppRunner[T any](mainApp app.App, appsCommonCfg app.Conf[T], opts ...App
 		for _, ap := range apps {
 			if provider, ok := ap.(app.MetricsSetter); ok {
 				collectors := provider.PrometheusCollectors()
-				config.metricsApp.RegisterCollectors(collectors...)
+				regErr := config.metricsApp.RegisterCollectors(collectors...)
+				if regErr != nil {
+					return nil, fmt.Errorf("error registering prometheus collector: %w", regErr)
+				}
 			}
 		}
 		apps = append(apps, config.metricsApp)
