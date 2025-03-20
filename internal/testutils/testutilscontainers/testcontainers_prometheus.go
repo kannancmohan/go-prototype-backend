@@ -22,7 +22,7 @@ type testPrometheusContainer struct {
 	container      testcontainers.Container
 }
 
-// metricsAppAddr is the endpoint from where prometheus will pulls metrics from.
+// NewPrometheusContainer to create new prometheus container.
 func NewPrometheusContainer(metricsAppAddr string) *testPrometheusContainer {
 	if metricsAppAddr == "" {
 		metricsAppAddr = "localhost:9090" // default address of metrics app
@@ -58,7 +58,7 @@ func (p *testPrometheusContainer) Start(ctx context.Context) error {
 		Started:          true,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get prometheus container: %w", err)
 	}
 
 	p.container = container
@@ -69,7 +69,7 @@ func (p *testPrometheusContainer) Start(ctx context.Context) error {
 func (p *testPrometheusContainer) Stop(ctx context.Context) error {
 	if p.container != nil {
 		if err := p.container.Terminate(ctx); err != nil {
-			return err
+			return fmt.Errorf("failed to stop prometheus container: %w", err)
 		}
 	}
 	return nil

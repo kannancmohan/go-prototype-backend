@@ -12,12 +12,12 @@ import (
 const (
 	tempoImage               = "grafana/tempo:2.7.1"
 	tempoConfigPath          = "/etc/tempo.yaml"
-	tempoApiPort             = "3200"
-	tempoExposedApiPort      = tempoApiPort + "/tcp"
+	tempoAPIPort             = "3200"
+	tempoExposedAPIPort      = tempoAPIPort + "/tcp"
 	tempoGrpcPort            = "4317"
 	tempoExposedOTLPGrpcPort = tempoGrpcPort + "/tcp"
-	tempoHttpPort            = "4318"
-	tempoExposedOTLPHttpPort = tempoHttpPort + "/tcp"
+	tempoHTTPPort            = "4318"
+	tempoExposedOTLPHttpPort = tempoHTTPPort + "/tcp"
 )
 
 var _ tContainer[testcontainers.Container] = &testTempoContainer{}
@@ -26,6 +26,7 @@ type testTempoContainer struct {
 	container testcontainers.Container
 }
 
+// NewTempoContainer to create new tempo container.
 func NewTempoContainer() *testTempoContainer {
 	return &testTempoContainer{}
 }
@@ -37,13 +38,13 @@ func (p *testTempoContainer) Start(ctx context.Context) error {
 	req := testcontainers.ContainerRequest{
 		Image:        tempoImage,
 		Cmd:          []string{"-config.file=" + tempoConfigPath},
-		ExposedPorts: []string{tempoExposedApiPort, tempoExposedOTLPGrpcPort, tempoExposedOTLPHttpPort},
+		ExposedPorts: []string{tempoExposedAPIPort, tempoExposedOTLPGrpcPort, tempoExposedOTLPHttpPort},
 		WaitingFor:   wait.ForLog("Tempo started").WithStartupTimeout(30 * time.Second),
 		LifecycleHooks: []testcontainers.ContainerLifecycleHooks{
 			{
 				PreStarts: []testcontainers.ContainerHook{
 					func(ctx context.Context, c testcontainers.Container) error {
-						err := c.CopyToContainer(ctx, getTempoConfig(tempoApiPort, tempoGrpcPort, tempoHttpPort), tempoConfigPath, 0o644)
+						err := c.CopyToContainer(ctx, getTempoConfig(tempoAPIPort, tempoGrpcPort, tempoHTTPPort), tempoConfigPath, 0o644)
 						if err != nil {
 							return fmt.Errorf("failed to copy tempo config to container: %w", err)
 						}
@@ -58,7 +59,7 @@ func (p *testTempoContainer) Start(ctx context.Context) error {
 		Started:          true,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get grafana container: %w", err)
 	}
 	p.container = tempo
 	return nil
@@ -67,7 +68,7 @@ func (p *testTempoContainer) Start(ctx context.Context) error {
 func (p *testTempoContainer) Stop(ctx context.Context) error {
 	if p.container != nil {
 		if err := p.container.Terminate(ctx); err != nil {
-			return err
+			return fmt.Errorf("failed to stop grafana container: %w", err)
 		}
 	}
 	return nil
@@ -80,7 +81,7 @@ func (p *testTempoContainer) GetContainer() (testcontainers.Container, error) {
 	return p.container, nil
 }
 
-func (p *testTempoContainer) GetContainerApiAddress(ctx context.Context) (testContainerAddr, error) {
+func (p *testTempoContainer) GetContainerAPIAddress(ctx context.Context) (testContainerAddr, error) {
 	if p.container == nil {
 		return testContainerAddr{}, fmt.Errorf("GetContainerApiAddress : grafana-tempo container not initialized/started")
 	}
@@ -88,7 +89,7 @@ func (p *testTempoContainer) GetContainerApiAddress(ctx context.Context) (testCo
 	if err != nil {
 		return testContainerAddr{}, fmt.Errorf("failed to get grafana-tempo container host: %w", err)
 	}
-	port, err := p.container.MappedPort(ctx, tempoExposedApiPort)
+	port, err := p.container.MappedPort(ctx, tempoExposedAPIPort)
 	if err != nil {
 		return testContainerAddr{}, fmt.Errorf("failed to get grafana-tempo container api port: %w", err)
 	}
@@ -125,7 +126,7 @@ func (p *testTempoContainer) GetContainerOTLPGrpcAddress(ctx context.Context) (t
 	return newTestContainerAddr(host, port.Int()), nil
 }
 
-func getTempoConfig(tempoApiPort, tempoOtlpGrpcPort, tempoOtlpHttpPort string) []byte {
+func getTempoConfig(tempoAPIPort, tempoOtlpGrpcPort, tempoOtlpHTTPPort string) []byte {
 	config := `
 server:
   http_listen_port: %s
@@ -155,5 +156,5 @@ storage:
     local:
       path: /tmp/tempo/traces  # Local storage for traces
 `
-	return []byte(fmt.Sprintf(config, tempoApiPort, tempoOtlpHttpPort, tempoOtlpGrpcPort))
+	return []byte(fmt.Sprintf(config, tempoAPIPort, tempoOtlpHTTPPort, tempoOtlpGrpcPort))
 }

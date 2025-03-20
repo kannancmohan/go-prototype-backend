@@ -145,7 +145,7 @@ linters:
 
 issues:
   exclude-rules:
-    - path: _test\.go
+    - path: _test\.go # skip check on _test.go
       linters:
         - errcheck
         - bodyclose
@@ -153,6 +153,12 @@ issues:
         - goconst
         - ireturn
         - dupl
+    - path: _test\.go|.*/testutils/.+\.go # skip revive check on _test.go and from testutils folder
+      text: "(unexported-return|dot-imports|unchecked-type-assertion)"
+      linters:
+        - revive
   include:
     - EXC0012
     - EXC0014
+  exclude-dirs:
+    - ^.git
