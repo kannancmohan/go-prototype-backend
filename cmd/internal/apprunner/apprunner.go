@@ -100,7 +100,7 @@ func NewAppRunner[T any](mainApp app.App, appsCommonCfg app.Conf[T], opts ...App
 		if loggableApp, ok := ap.(app.Loggable); ok {
 			loggableApp.SetLogger(config.log)
 		}
-		if configurableApp, ok := ap.(app.AppConfigSetter[T]); ok {
+		if configurableApp, ok := ap.(app.ConfigSetter[T]); ok {
 			configurableApp.SetAppConf(appsCommonCfg)
 		}
 	}

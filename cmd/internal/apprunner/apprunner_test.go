@@ -14,7 +14,7 @@ import (
 
 // mockApp is a mock implementation of the App interface for testing.
 
-var _ app.AppConfigSetter[any] = &mockApp{}
+var _ app.ConfigSetter[any] = &mockApp{}
 
 type mockApp struct {
 	appConf  app.Conf[any]

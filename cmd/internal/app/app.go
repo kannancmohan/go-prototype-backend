@@ -43,9 +43,9 @@ type Loggable interface {
 	SetLogger(log.Logger)
 }
 
-// AppConfigSetter . apps that need AppConf should implement this interface
+// ConfigSetter . apps that need AppConf should implement this interface
 // appRunner will automatically set AppConf to apps that implement this interface.
-type AppConfigSetter[T any] interface {
+type ConfigSetter[T any] interface {
 	SetAppConf(Conf[T])
 }
 
