@@ -115,7 +115,6 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get grafana-tempo container otlp-http address: %v", err)
 	}
-
 	tempoAPIAddr, err := tempo.GetContainerAPIAddress(ctx)
 	if err != nil {
 		t.Fatalf("failed to get grafana-tempo container api address: %v", err)
@@ -124,20 +123,18 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	// APP1
 	app1Config, app1ConfigCleanup, err := createAppRunnerConfig("app1", tempoOtlpHTTPAddr.Host, tempoOtlpHTTPAddr.Port, 0)
 	if err != nil {
-		panic(fmt.Errorf("error creating AppRunnerConfig for app1: %w", err))
+		t.Fatalf("error creating AppRunnerConfig for app1: %v", err)
 	}
 	defer app1ConfigCleanup(context.Background())
-
 	app1 := newTestApp("app1", app1Port, newSimpleTestService(app2Port))
 	app1Runner, _ := apprunner.NewAppRunner(app1, app.EmptyAppConf, app1Config...)
 
 	// APP2
 	app2Config, app2ConfigCleanup, err := createAppRunnerConfig("app2", tempoOtlpHTTPAddr.Host, tempoOtlpHTTPAddr.Port, 0)
 	if err != nil {
-		panic(fmt.Errorf("error creating AppRunnerConfig for app2: %w", err))
+		t.Fatalf("error creating AppRunnerConfig for app2: %v", err)
 	}
 	defer app2ConfigCleanup(context.Background())
-
 	app2 := newTestApp("app2", app2Port, nil)
 	app2Runner, _ := apprunner.NewAppRunner(app2, app.EmptyAppConf, app2Config...)
 
@@ -330,8 +327,9 @@ func createAppRunnerConfig(tracerName, tracerHost string, tracerPort, metricsApp
 
 	var config []apprunner.AppRunnerOption
 	var tracerProvider trace.TracerProvider
-	var shutdown func(ctx context.Context) error = func(ctx context.Context) error { return nil }
 	var err error
+
+	var shutdown = func(_ context.Context) error { return nil }
 
 	config = append(
 		config,

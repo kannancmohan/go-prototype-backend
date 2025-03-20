@@ -111,7 +111,7 @@ linters:
     - gocritic
     - gocyclo #checks the cyclomatic complexity of functions
     - godot #Check if comments end in a period
-    - gofumpt
+    - gofumpt #Checks if code & import statements are formatted, with additional rules
     - goimports #Checks if code & import statements are formatted according to the goimports command
     - goprintffuncname
     - gosec

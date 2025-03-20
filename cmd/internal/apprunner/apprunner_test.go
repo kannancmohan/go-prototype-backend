@@ -61,7 +61,7 @@ func TestAppRunner_Run(t *testing.T) {
 		{
 			name: "App Failure",
 			mainApp: &mockApp{
-				RunFunc: func(ctx context.Context) error {
+				RunFunc: func(_ context.Context) error {
 					return errors.New("mock app failed")
 				},
 				StopFunc: func(_ context.Context) error {
@@ -106,7 +106,7 @@ func TestAppRunner_Run(t *testing.T) {
 							<-ctx.Done()
 							return nil
 						},
-						StopFunc: func(ctx context.Context) error {
+						StopFunc: func(_ context.Context) error {
 							return nil
 						},
 					},
