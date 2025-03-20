@@ -9,8 +9,10 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+// EmptyAppConf an empty instance of AppConf.
 var EmptyAppConf AppConf[struct{}]
 
+// NewAppConf creates a new AppConf.
 func NewAppConf[T any](appName string, envVar T) (AppConf[T], error) {
 	if appName == "" {
 		return AppConf[T]{}, fmt.Errorf("mandatory fled 'appName' missing ")
@@ -18,11 +20,13 @@ func NewAppConf[T any](appName string, envVar T) (AppConf[T], error) {
 	return AppConf[T]{Name: appName, EnvVar: envVar}, nil
 }
 
+// AppConf creates a new AppConf.
 type AppConf[T any] struct {
 	Name   string
 	EnvVar T
 }
 
+// App interface exposes methods for app.
 type App interface {
 	Run(ctx context.Context) error
 	Stop(ctx context.Context) error

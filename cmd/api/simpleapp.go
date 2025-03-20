@@ -18,6 +18,7 @@ type simpleAppEnvVar struct {
 	LogLevel string
 }
 
+// NewSimpleApp creates a new simpleApp with the given port.
 func NewSimpleApp(port int) *simpleApp {
 	return &simpleApp{
 		port:            port,
