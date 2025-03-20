@@ -2,6 +2,7 @@ package testutils
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"time"
 )
 
+// WaitForPort checks for port until timeout duration is reached.
 func WaitForPort(port int, timeout time.Duration) error {
 	start := time.Now()
 	for {
@@ -30,10 +32,10 @@ func WaitForPort(port int, timeout time.Duration) error {
 // RetryGetReq is a generic function that performs an HTTP GET request with retries.
 func RetryGetReq(url, expectedString string, expectedStatusCode, maxRetries int, retryDelay time.Duration) (string, error) {
 	client := &http.Client{}
+	ctx := context.Background()
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-
-		req, err := http.NewRequest(http.MethodGet, url, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 		if err != nil {
 			return "", fmt.Errorf("failed to create HTTP request: %w", err)
 		}
@@ -43,10 +45,10 @@ func RetryGetReq(url, expectedString string, expectedStatusCode, maxRetries int,
 			time.Sleep(retryDelay)
 			continue
 		}
-		defer resp.Body.Close()
 
 		// Read the response body
 		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
 		if err != nil {
 			time.Sleep(retryDelay)
 			continue
@@ -66,13 +68,14 @@ func RetryGetReq(url, expectedString string, expectedStatusCode, maxRetries int,
 	return "", fmt.Errorf("max retries reached")
 }
 
-// RetryGetReqForJson is a generic function that performs an HTTP GET request with retries.
+// RetryGetReqForJSON is a generic function that performs an HTTP GET request with retries.
 // It checks if the JSON response contains a specific field and returns the marshaled JSON according to the generic type T.
-func RetryGetReqForJson[T any](url, expectedField string, expectedStatusCode, maxRetries int, retryDelay time.Duration) (*T, error) {
+func RetryGetReqForJSON[T any](url, expectedField string, expectedStatusCode, maxRetries int, retryDelay time.Duration) (*T, error) {
 	client := &http.Client{}
+	ctx := context.Background()
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		req, err := http.NewRequest(http.MethodGet, url, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create HTTP request: %w", err)
 		}
@@ -82,10 +85,10 @@ func RetryGetReqForJson[T any](url, expectedField string, expectedStatusCode, ma
 			time.Sleep(retryDelay)
 			continue
 		}
-		defer resp.Body.Close()
 
 		// Read the response body
 		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
 		if err != nil {
 			time.Sleep(retryDelay)
 			continue
@@ -112,24 +115,28 @@ func RetryGetReqForJson[T any](url, expectedField string, expectedStatusCode, ma
 	return nil, fmt.Errorf("max retries reached")
 }
 
+// GetFreePorts provides free open ports.
 func GetFreePorts(numPorts int) ([]int, error) {
 	var ports []int
 	for range numPorts {
 		a, err := net.ResolveTCPAddr("tcp", "localhost:0")
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error getting localhost tcp address: %w", err)
 		}
 
 		l, err := net.ListenTCP("tcp", a)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error getting localhost tcp address: %w", err)
 		}
-		defer l.Close()
-		ports = append(ports, l.Addr().(*net.TCPAddr).Port)
+		if addr, ok := l.Addr().(*net.TCPAddr); ok {
+			ports = append(ports, addr.Port)
+		}
+		l.Close() // Explicitly close the listener.
 	}
 	return ports, nil
 }
 
+// GetLocalIP provides local ip address.
 func GetLocalIP() (string, error) {
 	_, err := os.Stat("/.dockerenv")
 	if err == nil { // If running inside a Docker container, return "localhost".
@@ -138,7 +145,7 @@ func GetLocalIP() (string, error) {
 
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error getting localhost ip: %w", err)
 	}
 
 	for _, addr := range addrs {

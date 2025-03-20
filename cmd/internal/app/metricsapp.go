@@ -30,8 +30,10 @@ func NewMetricsServerApp(opts ...MetricsServerAppOption) *MetricsServerApp {
 }
 
 var _ App = &MetricsServerApp{}
+
 var _ Loggable = &MetricsServerApp{}
 
+// MetricsServerApp app to expose metrics endpoint.
 type MetricsServerApp struct {
 	registerer      prometheus.Registerer
 	gatherer        prometheus.Gatherer
@@ -43,39 +45,45 @@ type MetricsServerApp struct {
 	mu              sync.Mutex
 }
 
+// MetricsServerAppOption optional parameter for NewMetricsServerApp.
 type MetricsServerAppOption func(*MetricsServerApp)
 
+// WithRegisterer generates an optional MetricsServerAppOption with the given prometheus.Registerer.
 func WithRegisterer(registerer prometheus.Registerer) MetricsServerAppOption {
 	return func(c *MetricsServerApp) {
 		c.registerer = registerer
 	}
 }
 
+// WithGatherer generates an optional MetricsServerAppOption with the given prometheus.Gatherer.
 func WithGatherer(gatherer prometheus.Gatherer) MetricsServerAppOption {
 	return func(c *MetricsServerApp) {
 		c.gatherer = gatherer
 	}
 }
 
+// WithPort generates an optional MetricsServerAppOption with the given port.
 func WithPort(port int) MetricsServerAppOption {
 	return func(c *MetricsServerApp) {
 		c.port = port
 	}
 }
 
+// WithPath generates an optional MetricsServerAppOption with the given path.
 func WithPath(path string) MetricsServerAppOption {
 	return func(c *MetricsServerApp) {
 		c.path = path
 	}
 }
 
+// WithShutdownTimeout generates an optional MetricsServerAppOption with the given timeout.
 func WithShutdownTimeout(timeout time.Duration) MetricsServerAppOption {
 	return func(c *MetricsServerApp) {
 		c.shutdownTimeout = timeout
 	}
 }
 
-// RegisterCollectors. custom function to register app specific metrics collector
+// RegisterCollectors custom function to register app specific metrics collector.
 func (e *MetricsServerApp) RegisterCollectors(metrics ...prometheus.Collector) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -88,6 +96,7 @@ func (e *MetricsServerApp) RegisterCollectors(metrics ...prometheus.Collector) e
 	return nil
 }
 
+// Run method to start the MetricsServerApp.
 func (e *MetricsServerApp) Run(ctx context.Context) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -115,7 +124,7 @@ func (e *MetricsServerApp) Run(ctx context.Context) error {
 	case err := <-errCh:
 		return err
 	case <-ctx.Done():
-		stopCtx, cancel := context.WithTimeout(context.Background(), e.shutdownTimeout)
+		stopCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), e.shutdownTimeout)
 		defer cancel()
 		if err := e.server.Shutdown(stopCtx); err != nil {
 			return fmt.Errorf("metrics server shutdown failed: %w", err)
@@ -124,6 +133,7 @@ func (e *MetricsServerApp) Run(ctx context.Context) error {
 	}
 }
 
+// Stop method to stop the MetricsServerApp.
 func (e *MetricsServerApp) Stop(ctx context.Context) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -143,6 +153,7 @@ func (e *MetricsServerApp) Stop(ctx context.Context) error {
 	return nil
 }
 
+// SetLogger implementation of Loggable interface to automatically inject logger.
 func (e *MetricsServerApp) SetLogger(logger log.Logger) {
 	e.log = logger
 }

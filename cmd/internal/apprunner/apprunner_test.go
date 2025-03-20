@@ -50,7 +50,7 @@ func TestAppRunner_Run(t *testing.T) {
 					<-ctx.Done()
 					return nil
 				},
-				StopFunc: func(ctx context.Context) error {
+				StopFunc: func(_ context.Context) error {
 					return nil
 				},
 			},
@@ -64,7 +64,7 @@ func TestAppRunner_Run(t *testing.T) {
 				RunFunc: func(ctx context.Context) error {
 					return errors.New("mock app failed")
 				},
-				StopFunc: func(ctx context.Context) error {
+				StopFunc: func(_ context.Context) error {
 					return nil
 				},
 			},
@@ -80,7 +80,7 @@ func TestAppRunner_Run(t *testing.T) {
 					<-ctx.Done()
 					return nil
 				},
-				StopFunc: func(ctx context.Context) error {
+				StopFunc: func(_ context.Context) error {
 					return nil
 				},
 			},
@@ -95,7 +95,7 @@ func TestAppRunner_Run(t *testing.T) {
 					<-ctx.Done()
 					return nil
 				},
-				StopFunc: func(ctx context.Context) error {
+				StopFunc: func(_ context.Context) error {
 					return nil
 				},
 			},
@@ -135,13 +135,11 @@ func TestAppRunner_Run(t *testing.T) {
 					t.Errorf("Expected no error, got: %v", err)
 				}
 			}
-
 		})
 	}
 }
 
 func TestAppRunner_WithAppConf(t *testing.T) {
-
 	tests := []struct {
 		name            string
 		mainApp         *mockApp
@@ -157,7 +155,7 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 					<-ctx.Done()
 					return nil
 				},
-				StopFunc: func(ctx context.Context) error {
+				StopFunc: func(_ context.Context) error {
 					return nil
 				},
 			},
@@ -173,7 +171,7 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 					<-ctx.Done()
 					return nil
 				},
-				StopFunc: func(ctx context.Context) error {
+				StopFunc: func(_ context.Context) error {
 					return nil
 				},
 			},
@@ -193,10 +191,8 @@ func TestAppRunner_WithAppConf(t *testing.T) {
 			err := runner.Run(ctx)
 			if !reflect.DeepEqual(tt.expectedAppConf, tt.mainApp.appConf) {
 				t.Errorf("expected AppConf %q, got %q", tt.expectedAppConf, tt.mainApp.appConf)
-			} else {
-				if err != nil {
-					t.Errorf("Expected no error, got: %v", err)
-				}
+			} else if err != nil {
+				t.Errorf("Expected no error, got: %v", err)
 			}
 		})
 	}

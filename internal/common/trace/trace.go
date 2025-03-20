@@ -13,12 +13,13 @@ type spanAttribute struct {
 	value string
 }
 
+// WithAttribute optional attribute for Span.
 func WithAttribute(key, value string) spanAttribute {
 	return spanAttribute{key: key, value: value}
 }
 
-// NewOTELSpan. can be used in func for tracing
-// It should be place as first line of function. eg usage "defer trace.NewOTELSpan(ctx,tracer,"user.create").End()"
+// NewOTELSpan can be used in func for tracing
+// It should be place as first line of function. eg usage "defer trace.NewOTELSpan(ctx,tracer,"user.create").End()".
 func NewOTELSpan(ctx context.Context, tracer trace.Tracer, spanName string, spanAttributes ...spanAttribute) trace.Span {
 	if tracer == nil {
 		_, span := noop.NewTracerProvider().Tracer("").Start(ctx, spanName)

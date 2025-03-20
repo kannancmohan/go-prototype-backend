@@ -1,4 +1,4 @@
-package testcontainers_testutils
+package testutilscontainers
 
 import (
 	"context"
@@ -21,10 +21,10 @@ type testLgtmContainer struct {
 	container      *grafana_lgtm.GrafanaLGTMContainer
 }
 
-// metricsAppAddr is the endpoint from where prometheus will pulls metrics from
+// metricsAppAddr is the endpoint from where prometheus will pulls metrics from.
 func NewTestLgtmContainer(metricsAppAddr string) *testLgtmContainer {
 	if metricsAppAddr == "" {
-		metricsAppAddr = "localhost:9090" //default address of metrics app
+		metricsAppAddr = "localhost:9090" // default address of metrics app
 	}
 	return &testLgtmContainer{metricsAppAddr: metricsAppAddr}
 }
@@ -123,6 +123,9 @@ func generateTContainerAddr(address string) (testContainerAddr, error) {
 	if splitLen := len(addrSplit); splitLen != 2 {
 		return testContainerAddr{}, fmt.Errorf("failed to split address. expected 2 splits, but splits length was %d", splitLen)
 	}
-	port, _ := strconv.Atoi(addrSplit[1])
+	port, err := strconv.Atoi(addrSplit[1])
+	if err != nil {
+		return testContainerAddr{}, fmt.Errorf("failed to convert address. %w", err)
+	}
 	return newTestContainerAddr(addrSplit[0], port), nil
 }

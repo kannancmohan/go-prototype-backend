@@ -65,7 +65,7 @@ func (t *simpleApp) Run(ctx context.Context) error {
 	case err := <-errCh:
 		return err
 	case <-ctx.Done():
-		//TODO check whether we need to close the server . check how metrics server is stopped
+		// TODO check whether we need to close the server . check how metrics server is stopped
 	}
 	return nil
 }
@@ -102,5 +102,7 @@ func (t *simpleApp) SetTracerProvider(tp trace.TracerProvider) {
 }
 
 var _ app.Loggable = &simpleApp{}
+
 var _ app.AppConfigSetter[simpleAppEnvVar] = &simpleApp{}
+
 var _ app.Traceable = &simpleApp{}
