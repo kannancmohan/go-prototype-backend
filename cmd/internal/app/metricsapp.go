@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/kannancmohan/go-prototype-backend/internal/common/log"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )

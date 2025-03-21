@@ -75,7 +75,6 @@ require (
 	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/testcontainers/testcontainers-go v0.35.0
-	github.com/testcontainers/testcontainers-go/modules/grafana-lgtm v0.35.0
 	golang.org/x/sys v0.29.0 // indirect
 	google.golang.org/protobuf v1.36.3 // indirect
 )
