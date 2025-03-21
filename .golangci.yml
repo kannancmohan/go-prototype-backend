@@ -87,7 +87,7 @@ linters:
     - bodyclose
     # - containedctx # discourages using of Context inside struct
     - contextcheck
-    - copyloopvar
+    - copyloopvar #Detects places where loop variables are copied
     - dogsled
     - dupl
     - durationcheck
@@ -97,8 +97,8 @@ linters:
     - forbidigo
     - forcetypeassert
     - goconst
-    - gocritic
-    - gocyclo #checks the cyclomatic complexity of functions
+    - gocritic #Provides diagnostics that check for bugs, performance and style issues
+    - gocyclo #Checks the cyclomatic complexity of functions
     - godot #Check if comments end in a period
     - gofumpt #Checks if code & import statements are formatted, with additional rules(It’s a stricter version of gofmt)
     - goimports #Checks if code & import statements are formatted according to the goimports command
@@ -151,3 +151,5 @@ issues:
     - EXC0014
   exclude-dirs:
     - ^.git
+  # exclude-use-default: false #Determines whether the default exclude patterns should be used
+  max-same-issues: 0 #Maximum count of issues with the same text. Set to 0 to disable.
