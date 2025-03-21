@@ -61,6 +61,12 @@ func WithExitWait(exitWait time.Duration) Option {
 	}
 }
 
+// AppRunner interface that exposes methods for AppRunner.
+type AppRunner interface {
+	Run(ctx context.Context) error
+	StopApps(ctx context.Context) error
+}
+
 type appRunner struct {
 	apps     []app.App
 	log      log.Logger
@@ -70,7 +76,7 @@ type appRunner struct {
 }
 
 // NewAppRunner returns a new appRunner pointer.
-func NewAppRunner[T any](mainApp app.App, appsCommonCfg app.Conf[T], opts ...Option) (*appRunner, error) {
+func NewAppRunner[T any](mainApp app.App, appsCommonCfg app.Conf[T], opts ...Option) (AppRunner, error) {
 	if mainApp == nil {
 		return nil, fmt.Errorf("mainApp cannot be nil")
 	}

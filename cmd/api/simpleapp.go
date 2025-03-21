@@ -20,7 +20,7 @@ type simpleAppEnvVar struct {
 }
 
 // NewSimpleApp creates a new simpleApp with the given port.
-func NewSimpleApp(port int) *simpleApp {
+func NewSimpleApp(port int) app.App {
 	return &simpleApp{
 		port:            port,
 		shutdownTimeout: 5 * time.Second,
