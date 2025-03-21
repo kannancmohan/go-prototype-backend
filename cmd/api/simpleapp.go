@@ -9,6 +9,7 @@ import (
 
 	"github.com/kannancmohan/go-prototype-backend/cmd/internal/app"
 	"github.com/kannancmohan/go-prototype-backend/internal/common/log"
+
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/trace"
 )

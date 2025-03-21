@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/kannancmohan/go-prototype-backend/internal/common/log"
+
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -100,6 +101,7 @@ func (h traceIDHandler) Enabled(ctx context.Context, level slog.Level) bool {
 	return h.nextHandler.Enabled(ctx, level)
 }
 
+//nolint:gocritic // Passing slog.Record by value is required by the slog.Handler interface.
 func (h traceIDHandler) Handle(ctx context.Context, record slog.Record) error {
 	// Extract traceId from the OpenTelemetry context
 	spanContext := trace.SpanContextFromContext(ctx)
@@ -142,7 +144,7 @@ func (h customAttrHandler) Enabled(ctx context.Context, level slog.Level) bool {
 	return h.nextHandler.Enabled(ctx, level)
 }
 
-// Handle handles the Record.
+//nolint:gocritic // Passing slog.Record by value is required by the slog.Handler interface.
 func (h customAttrHandler) Handle(ctx context.Context, record slog.Record) error {
 	// Extract the custom value from the context
 	if value, ok := ctx.Value(h.ctxKey).(string); ok {

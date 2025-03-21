@@ -19,8 +19,8 @@ import (
 	"github.com/kannancmohan/go-prototype-backend/internal/common/log"
 	"github.com/kannancmohan/go-prototype-backend/internal/testutils"
 	tc_testutils "github.com/kannancmohan/go-prototype-backend/internal/testutils/testutilscontainers"
-	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -58,7 +58,7 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 		apprunner.WithMetricsApp(app.NewMetricsServerApp(app.WithPort(metricsAppPort))),
 		apprunner.WithLogger(log_impl.NewSimpleSlogLogger(log_impl.INFO, nil)),
 	)
-	defer runner.StopApps()
+	defer runner.StopApps(context.Background())
 
 	go func() {
 		runCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
@@ -128,6 +128,7 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	defer app1ConfigCleanup(context.Background())
 	app1 := newTestApp("app1", app1Port, newSimpleTestService(app2Port))
 	app1Runner, _ := apprunner.NewAppRunner(app1, app.EmptyAppConf, app1Config...)
+	defer app1Runner.StopApps(context.Background())
 
 	// APP2
 	app2Config, app2ConfigCleanup, err := createAppRunnerConfig("app2", tempoOtlpHTTPAddr.Host, tempoOtlpHTTPAddr.Port, 0)
@@ -137,6 +138,7 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	defer app2ConfigCleanup(context.Background())
 	app2 := newTestApp("app2", app2Port, nil)
 	app2Runner, _ := apprunner.NewAppRunner(app2, app.EmptyAppConf, app2Config...)
+	defer app2Runner.StopApps(context.Background())
 
 	// execute both apps
 	var wg sync.WaitGroup // to wait for the apps to shutdown properly
@@ -322,15 +324,15 @@ func (t simpleTestService) invokeExternalService(ctx context.Context) (string, e
 	return string(bodyBytes), nil
 }
 
-func createAppRunnerConfig(tracerName, tracerHost string, tracerPort, metricsAppPort int,
-	optApps ...app.App) ([]apprunner.Option, func(context.Context) error, error) {
-
+func createAppRunnerConfig(
+	tracerName, tracerHost string,
+	tracerPort, metricsAppPort int,
+	optApps ...app.App,
+) ([]apprunner.Option, func(context.Context) error, error) {
 	var config []apprunner.Option
 	var tracerProvider trace.TracerProvider
 	var err error
-
-	var shutdown = func(_ context.Context) error { return nil }
-
+	shutdown := func(_ context.Context) error { return nil }
 	config = append(
 		config,
 		apprunner.WithLogger(log_impl.NewSimpleSlogLogger(log_impl.INFO, nil, log_impl.NewTraceIDHandler)),

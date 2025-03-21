@@ -9,6 +9,7 @@ import (
 
 	"github.com/kannancmohan/go-prototype-backend/cmd/internal/app"
 	"github.com/kannancmohan/go-prototype-backend/internal/common/log"
+
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -68,6 +69,7 @@ type appRunner struct {
 	mu       sync.Mutex    // Mutex to protect the apps slice
 }
 
+// NewAppRunner returns a new appRunner pointer.
 func NewAppRunner[T any](mainApp app.App, appsCommonCfg app.Conf[T], opts ...Option) (*appRunner, error) {
 	if mainApp == nil {
 		return nil, fmt.Errorf("mainApp cannot be nil")
@@ -156,27 +158,21 @@ func (ar *appRunner) Run(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		ar.log.Info("Context canceled, stopping apps")
-		if err := ar.StopApps(); err != nil {
+		if err := ar.StopApps(context.WithoutCancel(ctx)); err != nil {
 			return fmt.Errorf("failed to stop apps: %w", err)
 		}
 		return nil
 	case err := <-errChan:
 		ar.log.Info("App failed, stopping all apps")
-		if stopErr := ar.StopApps(); stopErr != nil {
+		if stopErr := ar.StopApps(context.WithoutCancel(ctx)); stopErr != nil {
 			return errors.Join(err, fmt.Errorf("failed to stop apps: %w", stopErr))
 		}
 		return err
 	}
 }
 
-func (ar *appRunner) StopApps() error {
-	var stopCtx context.Context
-	var cancel context.CancelFunc
-	if ar.exitWait > 0 {
-		stopCtx, cancel = context.WithTimeout(context.Background(), ar.exitWait)
-	} else {
-		stopCtx, cancel = context.WithCancel(context.Background())
-	}
+func (ar *appRunner) StopApps(ctx context.Context) error {
+	stopCtx, cancel := context.WithTimeout(ctx, ar.exitWait)
 	defer cancel()
 
 	var err error
