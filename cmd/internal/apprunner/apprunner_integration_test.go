@@ -73,20 +73,20 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 	}
 
 	retryDelay := 2 * time.Second
-	appUrl := fmt.Sprintf("http://%s:%d/", appHost, appPort)
-	_, err = testutils.RetryGetReq(appUrl, "", http.StatusOK, 2, retryDelay)
+	appURL := fmt.Sprintf("http://%s:%d/", appHost, appPort)
+	_, err = testutils.RetryGetReq(appURL, "", http.StatusOK, 2, retryDelay)
 	if err != nil {
 		t.Error("expected app response, received error instead.", err.Error())
 	}
 
-	metricsAppUrl := fmt.Sprintf("http://%s:%d/metrics", appHost, metricsAppPort)
-	_, err = testutils.RetryGetReq(metricsAppUrl, "", http.StatusOK, 2, retryDelay)
+	metricsAppURL := fmt.Sprintf("http://%s:%d/metrics", appHost, metricsAppPort)
+	_, err = testutils.RetryGetReq(metricsAppURL, "", http.StatusOK, 2, retryDelay)
 	if err != nil {
 		t.Error("expected metrics response, received error instead.", err.Error())
 	}
 
-	promUrl := fmt.Sprintf("http://%s/api/v1/query?query=test_app_requests_total", containerAddr.Address)
-	_, err = testutils.RetryGetReq(promUrl, "test_app_requests_total", http.StatusOK, 5, retryDelay)
+	promURL := fmt.Sprintf("http://%s/api/v1/query?query=test_app_requests_total", containerAddr.Address)
+	_, err = testutils.RetryGetReq(promURL, "test_app_requests_total", http.StatusOK, 5, retryDelay)
 	if err != nil {
 		t.Error("expected 'test_app_requests_total' in prometheus response, received error instead.", err.Error())
 	}
@@ -111,33 +111,30 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	}
 	defer tempo.Stop(context.Background())
 
-	tempoOtlpHttpAddr, err := tempo.GetContainerOTLPHttpAddress(ctx)
+	tempoOtlpHTTPAddr, err := tempo.GetContainerOTLPHttpAddress(ctx)
 	if err != nil {
 		t.Fatalf("failed to get grafana-tempo container otlp-http address: %v", err)
 	}
-
-	tempoApiAddr, err := tempo.GetContainerApiAddress(ctx)
+	tempoAPIAddr, err := tempo.GetContainerAPIAddress(ctx)
 	if err != nil {
 		t.Fatalf("failed to get grafana-tempo container api address: %v", err)
 	}
 
 	// APP1
-	app1Config, app1ConfigCleanup, err := createAppRunnerConfig("app1", tempoOtlpHttpAddr.Host, tempoOtlpHttpAddr.Port, 0)
+	app1Config, app1ConfigCleanup, err := createAppRunnerConfig("app1", tempoOtlpHTTPAddr.Host, tempoOtlpHTTPAddr.Port, 0)
 	if err != nil {
-		panic(fmt.Errorf("error creating AppRunnerConfig for app1: %w", err))
+		t.Fatalf("error creating AppRunnerConfig for app1: %v", err)
 	}
 	defer app1ConfigCleanup(context.Background())
-
 	app1 := newTestApp("app1", app1Port, newSimpleTestService(app2Port))
 	app1Runner, _ := apprunner.NewAppRunner(app1, app.EmptyAppConf, app1Config...)
 
 	// APP2
-	app2Config, app2ConfigCleanup, err := createAppRunnerConfig("app2", tempoOtlpHttpAddr.Host, tempoOtlpHttpAddr.Port, 0)
+	app2Config, app2ConfigCleanup, err := createAppRunnerConfig("app2", tempoOtlpHTTPAddr.Host, tempoOtlpHTTPAddr.Port, 0)
 	if err != nil {
-		panic(fmt.Errorf("error creating AppRunnerConfig for app2: %w", err))
+		t.Fatalf("error creating AppRunnerConfig for app2: %v", err)
 	}
 	defer app2ConfigCleanup(context.Background())
-
 	app2 := newTestApp("app2", app2Port, nil)
 	app2Runner, _ := apprunner.NewAppRunner(app2, app.EmptyAppConf, app2Config...)
 
@@ -167,16 +164,16 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 
 	// invoke app1's endpoint which internally invokes the app2's endpoint as well
 	retryDelay := 2 * time.Second
-	appUrl := fmt.Sprintf("http://%s:%d/", "localhost", app1Port)
-	_, err = testutils.RetryGetReq(appUrl, "", http.StatusOK, 2, retryDelay)
+	appURL := fmt.Sprintf("http://%s:%d/", "localhost", app1Port)
+	_, err = testutils.RetryGetReq(appURL, "", http.StatusOK, 2, retryDelay)
 	if err != nil {
 		t.Error("expected app response, received error instead.", err.Error())
 	}
 
 	queryParams := url.Values{"service.name": {"app1"}}
-	tempoSearchUrl := fmt.Sprintf("http://%s/api/search?%s", tempoApiAddr.Address, queryParams.Encode())
+	tempoSearchURL := fmt.Sprintf("http://%s/api/search?%s", tempoAPIAddr.Address, queryParams.Encode())
 
-	searchResp, err := testutils.RetryGetReqForJSON[searchBySvcNameResp](tempoSearchUrl, "app1", http.StatusOK, 10, retryDelay)
+	searchResp, err := testutils.RetryGetReqForJSON[searchBySvcNameResp](tempoSearchURL, "app1", http.StatusOK, 10, retryDelay)
 	if err != nil {
 		t.Error("expected given value in tempo response, received error instead.", err.Error())
 	}
@@ -185,7 +182,7 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	}
 
 	traceID := searchResp.Traces[0].TraceID
-	getByTraceIDUrl := fmt.Sprintf("http://%s/api/traces/%s", tempoApiAddr.Address, traceID)
+	getByTraceIDUrl := fmt.Sprintf("http://%s/api/traces/%s", tempoAPIAddr.Address, traceID)
 	traceResp, err := testutils.RetryGetReqForJSON[getTraceByIDResp](getByTraceIDUrl, "app1", http.StatusOK, 10, retryDelay)
 	if err != nil {
 		t.Errorf("expected a valid json response for the given traceID:%q, received error instead.%v", traceID, err.Error())
@@ -326,12 +323,13 @@ func (t simpleTestService) invokeExternalService(ctx context.Context) (string, e
 }
 
 func createAppRunnerConfig(tracerName, tracerHost string, tracerPort, metricsAppPort int,
-	optApps ...app.App) ([]apprunner.AppRunnerOption, func(context.Context) error, error) {
+	optApps ...app.App) ([]apprunner.Option, func(context.Context) error, error) {
 
-	var config []apprunner.AppRunnerOption
+	var config []apprunner.Option
 	var tracerProvider trace.TracerProvider
-	var shutdown func(ctx context.Context) error = func(ctx context.Context) error { return nil }
 	var err error
+
+	var shutdown = func(_ context.Context) error { return nil }
 
 	config = append(
 		config,

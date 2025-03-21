@@ -16,6 +16,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 )
 
+// OpenTelemetryConfig configuration for OTelTracerProvider.
 type OpenTelemetryConfig struct {
 	Host        string
 	Port        int
@@ -23,15 +24,19 @@ type OpenTelemetryConfig struct {
 	ServiceName string
 }
 
+// OTelConnType custom otel connection type.
 type OTelConnType string
 
+// constants of type OTelConnType.
 const (
 	OTelConnTypeGRPC = OTelConnType("grpc")
 	OTelConnTypeHTTP = OTelConnType("http")
 )
 
+// OTelTracerProviderShutdown custom function type.
 type OTelTracerProviderShutdown func(context.Context) error
 
+// NewOTelTracerProvider function to create OTelTracerProvider.
 func NewOTelTracerProvider(cfg OpenTelemetryConfig) (*trace.TracerProvider, OTelTracerProviderShutdown, error) {
 	if cfg.Host == "" || cfg.Port == 0 || cfg.ServiceName == "" {
 		return nil, nil, errors.New("invalid OpenTelemetry configuration: Host, Port, and ServiceName are required")

@@ -111,7 +111,7 @@ linters:
     - gocritic
     - gocyclo #checks the cyclomatic complexity of functions
     - godot #Check if comments end in a period
-    - gofumpt
+    - gofumpt #Checks if code & import statements are formatted, with additional rules
     - goimports #Checks if code & import statements are formatted according to the goimports command
     - goprintffuncname
     - gosec
@@ -145,7 +145,7 @@ linters:
 
 issues:
   exclude-rules:
-    - path: _test\.go
+    - path: _test\.go # skip check on _test.go
       linters:
         - errcheck
         - bodyclose
@@ -153,6 +153,12 @@ issues:
         - goconst
         - ireturn
         - dupl
-  include:
+    - path: _test\.go|.*/testutils/.+\.go # skip revive check on _test.go and from testutils folder
+      text: "(unexported-return|dot-imports|unchecked-type-assertion)"
+      linters:
+        - revive
+  include: # list of Default Exclusions. check # a revive exclusion. https://golangci-lint.run/usage/false-positives/#default-exclusions
     - EXC0012
     - EXC0014
+  exclude-dirs:
+    - ^.git

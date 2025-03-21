@@ -2,6 +2,7 @@ package log
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -10,8 +11,10 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+// Level the log level type.
 type Level string
 
+// log level constants.
 const (
 	DEBUG Level = "debug"
 	INFO  Level = "info"
@@ -26,18 +29,21 @@ type slogLogger struct {
 	ctx    context.Context
 }
 
+// NewSimpleSlogLogger to create a new simple slogLogger instance.
 func NewSimpleSlogLogger(logLevel Level, writer io.Writer, customHandlers ...func(slog.Handler) slog.Handler) log.Logger {
 	if writer == nil {
 		writer = os.Stdout
 	}
+
+	var level slog.Level
 	var handler slog.Handler
-	if logLevel == "" {
-		handler = slog.NewJSONHandler(writer, &slog.HandlerOptions{})
-	} else {
-		var level slog.Level
-		_ = level.UnmarshalText([]byte(logLevel)) //TODO handler error
+
+	if err := level.UnmarshalText([]byte(logLevel)); err == nil {
 		handler = slog.NewJSONHandler(writer, &slog.HandlerOptions{Level: level})
+	} else {
+		handler = slog.NewJSONHandler(writer, &slog.HandlerOptions{})
 	}
+
 	// Apply custom handlers in sequence
 	for _, customHandler := range customHandlers {
 		handler = customHandler(handler)
@@ -79,12 +85,13 @@ func (s slogLogger) WithContext(ctx context.Context) log.Logger {
 	}
 }
 
-// custom slog handler to automatically add traceID to log.
+// traceIDHandler custom slog handler to automatically add traceID to log.
 type traceIDHandler struct {
 	traceIDKey  string
 	nextHandler slog.Handler
 }
 
+// NewTraceIDHandler to create a new traceIDHandler instance.
 func NewTraceIDHandler(nextHandler slog.Handler) slog.Handler {
 	return &traceIDHandler{traceIDKey: "traceID", nextHandler: nextHandler}
 }
@@ -99,7 +106,11 @@ func (h traceIDHandler) Handle(ctx context.Context, record slog.Record) error {
 	if spanContext.HasTraceID() {
 		record.Add(h.traceIDKey, slog.StringValue(spanContext.TraceID().String()))
 	}
-	return h.nextHandler.Handle(ctx, record)
+
+	if err := h.nextHandler.Handle(ctx, record); err != nil {
+		return fmt.Errorf("traceIDHandler: failed to handle log record: %w", err)
+	}
+	return nil
 }
 
 func (h traceIDHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
@@ -110,37 +121,46 @@ func (h traceIDHandler) WithGroup(name string) slog.Handler {
 	return NewTraceIDHandler(h.nextHandler.WithGroup(name))
 }
 
-// custom handler to add custom attribute (e.g., requestID) to log.
-type CustomAttrHandler struct {
+// customAttrHandler custom handler to add custom attribute (e.g., requestID) to log.
+type customAttrHandler struct {
 	nextHandler slog.Handler
 	attrKey     string
 	ctxKey      any
 }
 
+// NewCustomAttrHandler to create a new traceIDHandler instance.
 func NewCustomAttrHandler(handler slog.Handler, attrKey string, ctxKey any) slog.Handler {
-	return &CustomAttrHandler{
+	return &customAttrHandler{
 		nextHandler: handler,
 		attrKey:     attrKey,
 		ctxKey:      ctxKey,
 	}
 }
 
-func (h CustomAttrHandler) Enabled(ctx context.Context, level slog.Level) bool {
+// Enabled reports whether the handler handles records at the given level.
+func (h customAttrHandler) Enabled(ctx context.Context, level slog.Level) bool {
 	return h.nextHandler.Enabled(ctx, level)
 }
 
-func (h CustomAttrHandler) Handle(ctx context.Context, record slog.Record) error {
+// Handle handles the Record.
+func (h customAttrHandler) Handle(ctx context.Context, record slog.Record) error {
 	// Extract the custom value from the context
 	if value, ok := ctx.Value(h.ctxKey).(string); ok {
 		record.AddAttrs(slog.Any(h.attrKey, value))
 	}
-	return h.nextHandler.Handle(ctx, record)
+
+	if err := h.nextHandler.Handle(ctx, record); err != nil {
+		return fmt.Errorf("customAttrHandler: failed to handle log record: %w", err)
+	}
+	return nil
 }
 
-func (h CustomAttrHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+// WithAttrs returns a new Handler whose attributes consist of both the receiver's attributes and the arguments.
+func (h customAttrHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return NewCustomAttrHandler(h.nextHandler.WithAttrs(attrs), h.attrKey, h.ctxKey)
 }
 
-func (h CustomAttrHandler) WithGroup(name string) slog.Handler {
+// WithGroup returns a new Handler with the given group appended to the receiver's existing groups.
+func (h customAttrHandler) WithGroup(name string) slog.Handler {
 	return NewCustomAttrHandler(h.nextHandler.WithGroup(name), h.attrKey, h.ctxKey)
 }

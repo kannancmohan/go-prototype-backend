@@ -18,6 +18,7 @@ type simpleAppEnvVar struct {
 	LogLevel string
 }
 
+// NewSimpleApp creates a new simpleApp with the given port.
 func NewSimpleApp(port int) *simpleApp {
 	return &simpleApp{
 		port:            port,
@@ -30,7 +31,7 @@ type simpleApp struct {
 	shutdownTimeout time.Duration
 	server          *http.Server
 	log             log.Logger
-	appConf         app.AppConf[simpleAppEnvVar]
+	appConf         app.Conf[simpleAppEnvVar]
 	tp              trace.TracerProvider
 	mu              sync.Mutex
 }
@@ -93,7 +94,7 @@ func (t *simpleApp) SetLogger(logger log.Logger) {
 	t.log = logger
 }
 
-func (t *simpleApp) SetAppConf(conf app.AppConf[simpleAppEnvVar]) {
+func (t *simpleApp) SetAppConf(conf app.Conf[simpleAppEnvVar]) {
 	t.appConf = conf
 }
 
@@ -103,6 +104,6 @@ func (t *simpleApp) SetTracerProvider(tp trace.TracerProvider) {
 
 var _ app.Loggable = &simpleApp{}
 
-var _ app.AppConfigSetter[simpleAppEnvVar] = &simpleApp{}
+var _ app.ConfigSetter[simpleAppEnvVar] = &simpleApp{}
 
 var _ app.Traceable = &simpleApp{}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"testing"
 
@@ -20,6 +21,7 @@ func TestSlogLogger(t *testing.T) {
 		expectedMsg   string
 		expectedKey   string
 		expectedValue string
+		useError      bool // Flag to indicate if test case uses an error
 	}{
 		{
 			name:          "Test Info",
@@ -34,10 +36,11 @@ func TestSlogLogger(t *testing.T) {
 			name:          "Test Error",
 			loggerMethod:  log.Logger.Error,
 			inputMsg:      "test error message",
-			inputArgs:     []any{"error-key", "error-value"},
+			inputArgs:     []any{"error-key", "error-value", "error", fmt.Errorf("some error")},
 			expectedMsg:   "test error message",
 			expectedKey:   "error-key",
 			expectedValue: "error-value",
+			useError:      true,
 		},
 		{
 			name:          "Test Debug",
@@ -78,6 +81,11 @@ func TestSlogLogger(t *testing.T) {
 			// Verify the log key-value pair
 			if logOutput[tt.expectedKey] != tt.expectedValue {
 				t.Errorf("expected %q=%q, got %q=%q", tt.expectedKey, tt.expectedValue, tt.expectedKey, logOutput[tt.expectedKey])
+			}
+
+			// Verify the error (if this test case uses an error)
+			if tt.useError && logOutput["error"] == nil {
+				t.Error("expected error to be logged, but it was not")
 			}
 		})
 	}
@@ -128,14 +136,9 @@ func TestSlogLoggerWithContext(t *testing.T) {
 			// invoking logger fun(eg Info) using original originalLogger
 			tt.loggerMethod(originalLogger, "original log", tt.inputArgs...)
 
-			var logEntries []map[string]any
-			dec := json.NewDecoder(&buf)
-			for dec.More() {
-				var entry map[string]any
-				if err := dec.Decode(&entry); err != nil {
-					t.Fatalf("failed to decode log entry: %v", err)
-				}
-				logEntries = append(logEntries, entry)
+			logEntries, err := getLogs(buf)
+			if err != nil {
+				t.Fatalf("failed to decode log entry: %v", err)
 			}
 
 			// ✅ Expect two log entries (one from original logger, one from loggerWithContext)
@@ -211,14 +214,9 @@ func TestSlogLoggerWith(t *testing.T) {
 			// invoking logger fun(eg Info) using original originalLogger
 			tt.loggerMethod(originalLogger, "original log", tt.inputArgs...)
 
-			var logEntries []map[string]any
-			dec := json.NewDecoder(&buf)
-			for dec.More() {
-				var entry map[string]any
-				if err := dec.Decode(&entry); err != nil {
-					t.Fatalf("failed to decode log entry: %v", err)
-				}
-				logEntries = append(logEntries, entry)
+			logEntries, err := getLogs(buf)
+			if err != nil {
+				t.Fatalf("failed to decode log entry: %v", err)
 			}
 
 			// ✅ Expect two log entries (one from original logger, one from loggerWithContext)
@@ -254,4 +252,17 @@ func TestSlogLoggerWith(t *testing.T) {
 			}
 		})
 	}
+}
+
+func getLogs(buf bytes.Buffer) ([]map[string]any, error) {
+	logEntries := make([]map[string]any, 0, 5)
+	dec := json.NewDecoder(&buf)
+	for dec.More() {
+		var entry map[string]any
+		if err := dec.Decode(&entry); err != nil {
+			return nil, fmt.Errorf("failed to decode log entry: %w", err)
+		}
+		logEntries = append(logEntries, entry)
+	}
+	return logEntries, nil
 }
