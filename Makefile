@@ -1,6 +1,6 @@
 # include .envrc
 
-.PHONY: tidy gofmt build run test test-skip-integration-tests lint
+.PHONY: tidy gofmt build run test test-skip-integration-tests coverage lint
 
 tidy:
 	@go mod tidy
@@ -19,6 +19,11 @@ test:
 
 test-skip-integration-tests: gogenerate
 	@go test -v -tags skip_integration_tests ./...
+
+coverage:
+	@rm -f coverage.out && \
+	go test -coverprofile=coverage.out ./... && \
+	go tool cover -html=coverage.out
 
 lint: tidy gofmt
 	@golangci-lint run ./... -v
