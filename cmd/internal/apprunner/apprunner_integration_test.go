@@ -52,9 +52,14 @@ func TestAppRunnerMetricsIntegration(t *testing.T) {
 		t.Fatalf("failed to get prometheus container address: %v", err)
 	}
 
+	appConf, err := app.NewAppConf("app1", testAppEnvVar{})
+	if err != nil {
+		t.Fatalf("failed to init AppConf: %v", err)
+	}
+
 	runner, _ := apprunner.NewAppRunner(
-		newTestApp("app1", appPort, nil),
-		app.EmptyAppConf,
+		newTestApp(appConf.Name, appPort, nil),
+		appConf,
 		apprunner.WithMetricsApp(app.NewMetricsServerApp(app.WithPort(metricsAppPort))),
 		apprunner.WithLogger(log_impl.NewSimpleSlogLogger(log_impl.INFO, nil)),
 	)
@@ -121,23 +126,23 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	}
 
 	// APP1
-	app1Config, app1ConfigCleanup, err := createAppRunnerConfig("app1", tempoOtlpHTTPAddr.Host, tempoOtlpHTTPAddr.Port, 0)
+	appRun1Opts, app1ConfigCleanup, err := createAppRunnerConfig("app1", tempoOtlpHTTPAddr.Host, tempoOtlpHTTPAddr.Port, 0)
 	if err != nil {
 		t.Fatalf("error creating AppRunnerConfig for app1: %v", err)
 	}
 	defer app1ConfigCleanup(context.Background())
 	app1 := newTestApp("app1", app1Port, newSimpleTestService(app2Port))
-	app1Runner, _ := apprunner.NewAppRunner(app1, app.EmptyAppConf, app1Config...)
+	app1Runner, _ := apprunner.NewAppRunner(app1, app.EmptyAppConf, appRun1Opts...)
 	defer app1Runner.StopApps(context.Background())
 
 	// APP2
-	app2Config, app2ConfigCleanup, err := createAppRunnerConfig("app2", tempoOtlpHTTPAddr.Host, tempoOtlpHTTPAddr.Port, 0)
+	appRun2Opts, app2ConfigCleanup, err := createAppRunnerConfig("app2", tempoOtlpHTTPAddr.Host, tempoOtlpHTTPAddr.Port, 0)
 	if err != nil {
 		t.Fatalf("error creating AppRunnerConfig for app2: %v", err)
 	}
 	defer app2ConfigCleanup(context.Background())
 	app2 := newTestApp("app2", app2Port, nil)
-	app2Runner, _ := apprunner.NewAppRunner(app2, app.EmptyAppConf, app2Config...)
+	app2Runner, _ := apprunner.NewAppRunner(app2, app.EmptyAppConf, appRun2Opts...)
 	defer app2Runner.StopApps(context.Background())
 
 	// execute both apps
@@ -195,6 +200,11 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 
 	cancel()  // Cancel the context to signal the apps to shut down
 	wg.Wait() // Wait for the apps to shut down
+}
+
+type testAppEnvVar struct {
+	EnvName  string
+	LogLevel string
 }
 
 type testApp struct {
