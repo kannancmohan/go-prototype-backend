@@ -5,7 +5,7 @@
 tidy:
 	@go mod tidy
 
-gofmt:
+gofmt: tidy
 	@find . -type f -name '*.go' -not -path './vendor/*' -not -path './pkg/mod/*' -exec gofmt -s -w {} +
 
 build:
@@ -17,7 +17,7 @@ run:
 test:
 	@go test -v ./...
 
-test-skip-integration-tests: gogenerate
+test-skip-integration-tests:
 	@go test -v -tags skip_integration_tests ./...
 
 coverage:
@@ -27,4 +27,3 @@ coverage:
 
 lint: tidy gofmt
 	@golangci-lint run ./... -v
-	@go vet ./...

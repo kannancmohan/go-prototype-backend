@@ -1,0 +1,35 @@
+#
+#   Refer https://github.com/evilmartians/lefthook/blob/master/docs/configuration.md
+#
+pre-commit:
+  commands:
+    lint-staged:
+      run: golangci-lint run {staged_files}
+      glob: "*.go"
+    # prettier:
+    #   run: prettier --write .
+    #   glob: "*.{js,ts,css,md}"
+commit-msg:
+  commands:
+    check-commit:
+      run: commitlint --edit "$1" --verbose
+
+pre-push:
+  parallel: true
+  commands:
+    check-fmt: # fail on any gofmt error
+      run: |
+        if gofmt -l $(find . -name '*.go' | grep -v vendor) | grep .; then
+          echo "ERROR: Unformatted .go files. Run: gofmt -w ./..."
+          exit 1
+        fi
+    run-lint: # fail on any golangci-lint error
+      run: golangci-lint run ./...
+    run-test: # fail on any test error
+      run: go test -v ./...
+    check-go-mod: # fail if go mod needs updation
+      run: |
+        if [ -n "$(go mod tidy -diff 2>&1)" ]; then
+          echo "ERROR: go.mod/go.sum out of sync. Run: go mod tidy"
+          exit 1
+        fi
