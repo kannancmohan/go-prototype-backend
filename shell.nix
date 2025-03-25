@@ -16,11 +16,12 @@ pkgs.mkShellNoCC {
         pkgs.air # hot reload for Go
         pkgs.clang # added for vscode Go extension to work
         pkgs.cyrus_sasl # added for vscode Go extension to work
-        pkgs.direnv ## direnv for project/shell specific env variables(see .envrc file)
+        pkgs.direnv # direnv for project/shell specific env variables(see .envrc file)
+        pkgs.commitlint # to validate git commit message
 
         ## Golang Tools
         pkgs.golangci-lint # https://golangci-lint.run/usage/linters/
-        pkgs.lefthook # git hooks can manage pre-commit, commit-msg, and post-commit hooks
+        pkgs.lefthook # tool to run tasks on git hooks
 
         ## Added for golang testing
         pkgs.docker

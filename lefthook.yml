@@ -3,12 +3,12 @@
 #
 pre-commit:
   commands:
-    lint-staged:
+    check-go-lint-staged:
       run: golangci-lint run {staged_files}
       glob: "*.go"
     # prettier:
     #   run: prettier --write .
-    #   glob: "*.{js,ts,css,md}"
+    #   glob: "*.{json,yml,md}"
 commit-msg:
   commands:
     check-commit:
@@ -17,15 +17,15 @@ commit-msg:
 pre-push:
   parallel: true
   commands:
-    check-fmt: # fail on any gofmt error
+    check-go-fmt: # fail on any gofmt error
       run: |
         if gofmt -l $(find . -name '*.go' | grep -v vendor) | grep .; then
           echo "ERROR: Unformatted .go files. Run: gofmt -w ./..."
           exit 1
         fi
-    run-lint: # fail on any golangci-lint error
+    check-go-lint: # fail on any golangci-lint error
       run: golangci-lint run ./...
-    run-test: # fail on any test error
+    run-go-test: # fail on any test error
       run: go test -v ./...
     check-go-mod: # fail if go mod needs updation
       run: |
