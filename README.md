@@ -1,8 +1,9 @@
 # go-prototype-backend
-A prototype to build golang backend app's. It has the following integration ootb
-* metrics - a metrics server that exposes an endpoint to be used by prometheus
-* tracing - integration with grafana tempo to export trace data
-
+A prototype to build golang backend app's.
+OOTB features
+* metrics - inbuilt metrics server that exposes metrics for prometheus
+* tracing - supports integration with tracing backends like grafana tempo
+* logging - supports integration with different logging framework(supports slog ootb)
 
 
 ## Tech Stack 
@@ -86,7 +87,21 @@ To run only a specific linter(eg staticcheck)
 ```
 golangci-lint run --no-config --disable-all --enable=staticcheck -v
 ```
+##### Git pre-commit hooks
 
+###### Install lefthook (onetime setup)
+```
+go install github.com/evilmartians/lefthook@latest
+```
+lefthook can also be installed manually or via nixshell
+
+###### Initialize your project (onetime setup)
+```
+lefthook install
+```
+
+###### Configure the lefthook.yml (onetime setup)
+the "lefthook install" command will generate a lefthook.yml file. Update it accordingly
 
 #### Configuring Tracing 
 ##### Adding tracing to incoming http request 

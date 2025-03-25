@@ -7,18 +7,25 @@ in
 
 pkgs.mkShellNoCC {
     packages = with pkgs; [
-        pkgs.tree # optional
-        ## added for golang
+        # Optional packages
+        pkgs.tree
+
+        ## Added for golang project
         pkgs.go #version 1.23.6
         pkgs.delve # debugger for Go
         pkgs.air # hot reload for Go
         pkgs.clang # added for vscode Go extension to work
         pkgs.cyrus_sasl # added for vscode Go extension to work
-        pkgs.direnv ## direnv for project/shell specific env variables(see .envrc file)
-        ## tools for the go project
-        pkgs.golangci-lint
-        ## added golang testing
+        pkgs.direnv # direnv for project/shell specific env variables(see .envrc file)
+        pkgs.commitlint # to validate git commit message
+
+        ## Golang Tools
+        pkgs.golangci-lint # https://golangci-lint.run/usage/linters/
+        pkgs.lefthook # tool to run tasks on git hooks
+
+        ## Added for golang testing
         pkgs.docker
+
     ] ++ (if pkgs.stdenv.isDarwin then [ 
         pkgs.darwin.iproute2mac pkgs.darwin.apple_sdk.frameworks.CoreFoundation 
     ] else []);
