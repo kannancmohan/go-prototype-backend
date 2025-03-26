@@ -119,7 +119,7 @@ func TestAppRunner_Run(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			runner, _ := apprunner.NewAppRunner(tt.mainApp, app.EmptyAppConf, tt.config...)
+			runner, _ := apprunner.NewAppRunner(tt.mainApp, app.EmptyAppConf(), tt.config...)
 			ctx, cancel := context.WithTimeout(context.Background(), tt.ctxTimeout)
 			defer cancel()
 

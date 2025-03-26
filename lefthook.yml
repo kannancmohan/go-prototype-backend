@@ -3,8 +3,12 @@
 #
 pre-commit:
   commands:
-    check-go-lint-staged:
-      run: golangci-lint run {staged_files}
+    check-go-lint-staged: # TODO alternate solution? maybe use --new-from-patch flag from golangci-lint
+      run: |
+        pkgs=$(git diff --cached --name-only --diff-filter=d '*.go' | xargs -r dirname | sort -u)
+        if [ -n "$pkgs" ]; then
+          golangci-lint run $(go list -f '{{.Dir}}' $pkgs)
+        fi
       glob: "*.go"
     # prettier:
     #   run: prettier --write .

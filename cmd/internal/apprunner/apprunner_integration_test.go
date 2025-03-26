@@ -132,7 +132,7 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	}
 	defer app1ConfigCleanup(context.Background())
 	app1 := newTestApp("app1", app1Port, newSimpleTestService(app2Port))
-	app1Runner, _ := apprunner.NewAppRunner(app1, app.EmptyAppConf, appRun1Opts...)
+	app1Runner, _ := apprunner.NewAppRunner(app1, app.EmptyAppConf(), appRun1Opts...)
 	defer app1Runner.StopApps(context.Background())
 
 	// APP2
@@ -142,7 +142,7 @@ func TestAppRunnerDistributedTracingWithMultipleApps(t *testing.T) {
 	}
 	defer app2ConfigCleanup(context.Background())
 	app2 := newTestApp("app2", app2Port, nil)
-	app2Runner, _ := apprunner.NewAppRunner(app2, app.EmptyAppConf, appRun2Opts...)
+	app2Runner, _ := apprunner.NewAppRunner(app2, app.EmptyAppConf(), appRun2Opts...)
 	defer app2Runner.StopApps(context.Background())
 
 	// execute both apps

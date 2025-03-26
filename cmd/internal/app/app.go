@@ -11,7 +11,9 @@ import (
 )
 
 // EmptyAppConf an empty instance of AppConf.
-var EmptyAppConf Conf[struct{}]
+func EmptyAppConf() Conf[struct{}] {
+	return Conf[struct{}]{}
+}
 
 // NewAppConf creates a new AppConf.
 func NewAppConf[T any](appName string, envVar T) (Conf[T], error) {
