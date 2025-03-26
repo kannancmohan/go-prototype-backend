@@ -96,7 +96,7 @@ linters:
     - exhaustive
     - forbidigo
     - forcetypeassert
-    - goconst
+    - goconst #Finds repeated strings that could be replaced by a constant.
     - gocritic #Provides diagnostics that check for bugs, performance and style issues
     - gocyclo #Checks the cyclomatic complexity of functions
     - godot #Check if comments end in a period

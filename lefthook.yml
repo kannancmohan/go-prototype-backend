@@ -5,11 +5,14 @@ pre-commit:
   commands:
     check-go-lint-staged: # TODO alternate solution? maybe use --new-from-patch flag from golangci-lint
       run: |
-        pkgs=$(git diff --cached --name-only --diff-filter=d '*.go' | xargs -r dirname | sort -u)
+        pkgs=$(git diff --staged --name-only --diff-filter=d '*.go' | xargs -r dirname | sort -u)
         if [ -n "$pkgs" ]; then
           golangci-lint run $(go list -f '{{.Dir}}' $pkgs)
         fi
       glob: "*.go"
+    check-for-secrets:
+      files: git diff --staged --name-only --diff-filter=d 
+      run: 'if command -v gitleaks > /dev/null 2>&1; then gitleaks git --no-banner --pre-commit --staged --redact --verbose; else echo "ERROR: gitleaks is not installed. Please install it. See https://github.com/gitleaks/gitleaks#installing"; fi'
     # prettier:
     #   run: prettier --write .
     #   glob: "*.{json,yml,md}"
@@ -29,6 +32,8 @@ pre-push:
         fi
     check-go-lint: # fail on any golangci-lint error
       run: golangci-lint run ./...
+    check-for-secrets:
+      run: 'if command -v gitleaks > /dev/null 2>&1; then gitleaks git --no-banner --redact --verbose; else echo "ERROR: gitleaks is not installed. Please install it. See https://github.com/gitleaks/gitleaks#installing"; fi'
     run-go-test: # fail on any test error
       run: go test -v ./...
     check-go-mod: # fail if go mod needs updation

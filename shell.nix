@@ -18,6 +18,7 @@ pkgs.mkShellNoCC {
         pkgs.cyrus_sasl # added for vscode Go extension to work
         pkgs.direnv # direnv for project/shell specific env variables(see .envrc file)
         pkgs.commitlint # to validate git commit message
+        pkgs.gitleaks # tool for detecting hardcoded secrets like password etc
 
         ## Golang Tools
         pkgs.golangci-lint # https://golangci-lint.run/usage/linters/
