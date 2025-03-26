@@ -103,6 +103,15 @@ lefthook install
 ###### Configure the lefthook.yml (onetime setup)
 the "lefthook install" command will generate a lefthook.yml file. Update it accordingly
 
+###### Skipping lefthook check
+Add --no-verify flag to skip hook based check
+
+Eg: to skip pre-commit lefthook check 
+```
+git commit -m "chore: some test message"  --no-verify
+```
+
+
 #### Configuring Tracing 
 ##### Adding tracing to incoming http request 
 Ensure that the TracerProvider is set globally or set in the handler 
