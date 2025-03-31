@@ -1,0 +1,56 @@
+# check the documentation at https://goreleaser.com
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 2
+
+before: # Commands to run before the build
+  hooks:
+    - go mod tidy
+    - go test ./...
+    # - go generate ./...
+
+builds: # Build configurations
+  - id: go-prototype-backend
+    binary: go-prototype-backend
+    main: ./cmd/api
+    env:
+      - CGO_ENABLED=0
+    mod_timestamp: "{{ .CommitTimestamp }}" # Uses the timestamp of the Git commit being released
+    # flags:
+    #   - -trimpath # Removes filesystem paths from the compiled binary
+    ldflags: # controls how your binary is built
+      - "-s -w -X main.version={{ .Version }} -X main.commit={{ .Commit }}"
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+# Archive configurations 
+# you can test the generating archives using 'goreleaser release --snapshot --rm-dist'
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # wrap_in_directory: true
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog: 
+  disable: true # disabling since we are generating the same using semantic-release
+
+# If your last tag was v1.2.3, running 'goreleaser release --snapshot' will generate yourapp_v1.2.4-next_linux_amd64.tar.gz
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
