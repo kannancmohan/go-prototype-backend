@@ -2,6 +2,8 @@ name: Release
 
 on:
   push:
+    branches:
+      - 'main'
     tags:
       - 'v*'
 
@@ -33,6 +35,7 @@ jobs:
             echo "GH_TOKEN is NOT set"
           fi
 
+      # Authenticates workflow to GitHub Container Registry for publishing Docker images
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -40,10 +43,26 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GH_TOKEN }}
 
+      # Enables multi-architecture Docker image builds (amd64+arm64)
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # Determines the next semantic version number and creates a release
+      - name: Semantic Release
+        id: semantic-release
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          extra_plugins: |
+            @semantic-release/git
+            @semantic-release/exec
+            @semantic-release/changelog
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      # Builds and publishes Go binaries and Docker images
       - name: Run GoReleaser
+        # Only run GoReleaser if semantic-release created a new release
+        if: ${{ steps.semantic-release.outputs.new_release_published == 'true' }}
         uses: goreleaser/goreleaser-action@v5
         with:
           distribution: goreleaser
@@ -52,3 +71,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          VERSION: ${{ steps.semantic-release.outputs.new_release_version }}
