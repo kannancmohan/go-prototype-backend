@@ -32,8 +32,8 @@ jobs:
       - name: Lint Go Code
         uses: golangci/golangci-lint-action@v7
         with:
-          version: latest
-          args: --timeout=7m
+          version: v1.62.2
+          args: --verbose --timeout=7m
 
       # Run unit tests
       - name: Run Go Tests
