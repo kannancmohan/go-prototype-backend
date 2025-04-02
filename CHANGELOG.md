@@ -1,3 +1,10 @@
+# [0.4.0](https://github.com/kannancmohan/go-prototype-backend/compare/v0.3.0...v0.4.0) (2025-04-02)
+
+
+### Features
+
+* update github release workflow config ([6ce186c](https://github.com/kannancmohan/go-prototype-backend/commit/6ce186c9d203aef37ac502a4786da82f3a6b321e))
+
 # [0.3.0](https://github.com/kannancmohan/go-prototype-backend/compare/v0.2.0...v0.3.0) (2025-04-02)
 
 
