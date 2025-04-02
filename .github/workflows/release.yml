@@ -24,11 +24,20 @@ jobs:
           go-version: '1.23.1'
           cache: true
 
+      # Debug step to check available secrets and token validity
+      - name: Debug token
+        run: |
+          if [ -n "${{ secrets.GO_GITHUB_TOKEN }}" ]; then
+            echo "GO_GITHUB_TOKEN is set"
+          else
+            echo "GO_GITHUB_TOKEN is NOT set"
+          fi
+          
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
+          username: ${{ github.repository_owner }}
           password: ${{ secrets.GO_GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
