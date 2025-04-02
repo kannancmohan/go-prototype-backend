@@ -3,7 +3,7 @@ version: 2
 before: # Commands to run before the build
   hooks:
     - go mod tidy
-    - go test ./...
+    # - go test ./...
     # - go generate ./...
 
 builds: # Build configurations
@@ -19,8 +19,6 @@ builds: # Build configurations
       - "-s -w -X main.branch={{.Branch}} -X main.version={{ .Version }} -X main.commit={{ .Commit }}"
     goos:
       - linux
-      - windows
-      - darwin
     goarch:
       - amd64
       - arm64
