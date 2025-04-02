@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   goreleaser:
+    environment: Release # This links to your GitHub Environment where you set your environment variables and secrets
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
