@@ -65,7 +65,7 @@ jobs:
       - name: Run GoReleaser
         # Only run GoReleaser if semantic-release created a new release
         if: ${{ steps.semantic-release.outputs.new_release_published == 'true' }}
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: latest
