@@ -1,5 +1,5 @@
 # check the documentation at https://goreleaser.com
-# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json?version=2
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
 
 version: 2
@@ -20,7 +20,7 @@ builds: # Build configurations
     # flags:
     #   - -trimpath # Removes filesystem paths from the compiled binary
     ldflags: # controls how your binary is built
-      - "-s -w -X main.version={{ .Version }} -X main.commit={{ .Commit }}"
+      - "-s -w -X main.branch={{.Branch}} -X main.version={{ .Version }} -X main.commit={{ .Commit }}"
     goos:
       - linux
       - windows
@@ -51,6 +51,48 @@ checksum:
 changelog: 
   disable: true # disabling since we are generating the same using semantic-release
 
-# If your last tag was v1.2.3, running 'goreleaser release --snapshot' will generate yourapp_v1.2.4-next_linux_amd64.tar.gz
-snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+# Removed deprecated snapshot.name_template configuration
+# For snapshot testing use: goreleaser release --snapshot --clean
+
+# Docker image configuration
+dockers:
+  - image_templates:
+    - "ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:{{ .Version }}-amd64"
+    - "ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:latest-amd64"
+    use: buildx
+    goos: linux
+    goarch: amd64
+    build_flag_templates:
+    - "--pull"
+    - "--label=org.opencontainers.image.created={{.Date}}"
+    - "--label=org.opencontainers.image.title={{.ProjectName}}"
+    - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+    - "--label=org.opencontainers.image.version={{.Version}}"
+    - "--platform=linux/amd64"
+    dockerfile: Dockerfile.goreleaser
+    skip_push: false
+  - image_templates:
+    - "ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:{{ .Version }}-arm64"
+    - "ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:latest-arm64"
+    use: buildx
+    goos: linux
+    goarch: arm64
+    build_flag_templates:
+    - "--pull"
+    - "--label=org.opencontainers.image.created={{.Date}}"
+    - "--label=org.opencontainers.image.title={{.ProjectName}}"
+    - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+    - "--label=org.opencontainers.image.version={{.Version}}"
+    - "--platform=linux/arm64"
+    dockerfile: Dockerfile.goreleaser
+    skip_push: false
+
+docker_manifests:
+  - name_template: "ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:{{ .Version }}"
+    image_templates:
+    - "ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:{{ .Version }}-amd64"
+    - "ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:latest"
+    image_templates:
+    - "ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:latest-amd64"
+    - "ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:latest-arm64"

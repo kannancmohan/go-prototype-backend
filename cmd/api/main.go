@@ -14,12 +14,13 @@ import (
 )
 
 var (
+	branch  = "invalid" // Overwritten by ldflags.
 	version = "dev"     // Overwritten by ldflags.
 	commit  = "unknown" // Overwritten by ldflags.
 )
 
 func main() {
-	log.Printf("app v%s (commit: %s)\n", version, commit)
+	log.Printf("app v%s (commit: %s) (branch: %s)\n", version, commit, branch)
 	appConf, err := app.NewAppConf("simple-app", simpleAppEnvVar{})
 	if err != nil {
 		panic(fmt.Errorf("error init AppConf: %w", err))
