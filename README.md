@@ -14,7 +14,7 @@ OOTB features
 | prometheus                                 |   1.21.0     |  github.com/prometheus/client_golang                |
 | opentelemetry                              |   1.34.0     |  go.opentelemetry.io/otel                           |
 
-## Configuration Tools (local)
+## Linting & Configuration Tools (local)
 | Item                             | version    | desc                                                |
 | :------------------------------- | :--------: | -------------------------------------------------------------------------: |
 | direnv                           |   2.35.0   |  automatically loads/unloads environment variables based on the directory  |
@@ -89,6 +89,8 @@ go test -v -tags skip_integration_tests ./...
 ```
 ##### Run linters
 ```
+make lint
+or
 golangci-lint run -v
 ```
 
@@ -96,7 +98,7 @@ To run only a specific linter(eg staticcheck)
 ```
 golangci-lint run --no-config --disable-all --enable=staticcheck -v
 ```
-##### Git pre-commit hooks
+##### Git hooks
 
 ###### Install lefthook (onetime setup)
 ```
@@ -120,6 +122,19 @@ Eg: to skip pre-commit lefthook check
 git commit -m "chore: some test message"  --no-verify
 ```
 
+###### Dry-run lefthook commands
+Eg: dry-run pre-commit hook commands
+```
+echo "feat: add new API" | lefthook run pre-commit
+```
+
+##### Auto build and deployment
+
+###### To verify if .goreleaser.yaml is valid
+```
+goreleaser check
+```
+this requires installing goreleaser cli
 
 #### Configuring Tracing 
 ##### Adding tracing to incoming http request 

@@ -24,6 +24,9 @@ pkgs.mkShellNoCC {
         pkgs.golangci-lint # https://golangci-lint.run/usage/linters/
         pkgs.lefthook # tool to run tasks on git hooks
 
+        ## Golang optional Tools 
+        pkgs.goreleaser #tool to build and publish go binaries.
+
         ## Added for golang testing
         pkgs.docker
 

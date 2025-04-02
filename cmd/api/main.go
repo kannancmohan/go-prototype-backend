@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 
@@ -12,7 +13,14 @@ import (
 	app_trace "github.com/kannancmohan/go-prototype-backend/cmd/internal/common/trace"
 )
 
+var (
+	branch  = "invalid" // Overwritten by ldflags.
+	version = "dev"     // Overwritten by ldflags.
+	commit  = "unknown" // Overwritten by ldflags.
+)
+
 func main() {
+	log.Printf("app v%s (commit: %s) (branch: %s)\n", version, commit, branch)
 	appConf, err := app.NewAppConf("simple-app", simpleAppEnvVar{})
 	if err != nil {
 		panic(fmt.Errorf("error init AppConf: %w", err))
