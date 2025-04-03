@@ -63,7 +63,7 @@ dockers:
     - "--label=org.opencontainers.image.revision={{.FullCommit}}"
     - "--label=org.opencontainers.image.version={{.Version}}"
     - "--platform=linux/amd64"
-    dockerfile: Dockerfile.goreleaser
+    dockerfile: .github/config/Dockerfile.goreleaser
     skip_push: false
   - image_templates:
     - "ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:{{ .Version }}-arm64"
@@ -78,7 +78,7 @@ dockers:
     - "--label=org.opencontainers.image.revision={{.FullCommit}}"
     - "--label=org.opencontainers.image.version={{.Version}}"
     - "--platform=linux/arm64"
-    dockerfile: Dockerfile.goreleaser
+    dockerfile: .github/config/Dockerfile.goreleaser
     skip_push: false
 
 docker_manifests:

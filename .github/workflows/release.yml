@@ -61,6 +61,9 @@ jobs:
             @semantic-release/git
             @semantic-release/exec
             @semantic-release/changelog
+          semantic_version: 24.2.3
+          extends: |
+            .github/config/.releaserc.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
@@ -73,7 +76,7 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release --clean
+          args: release --clean --config .github/config/.goreleaser.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
