@@ -48,7 +48,7 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GH_TOKEN }}
 
-      # Enables multi-architecture Docker image builds (amd64+arm64)
+      # Setup Docker Buildx for multi-architecture builds
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -63,10 +63,9 @@ jobs:
             @semantic-release/exec
             @semantic-release/changelog
           semantic_version: 24.2.3
-          extends: |
-            .github/config/.releaserc.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          CONFIG_PATH: ".github/config/.releaserc.yml"
 
       # Builds and publishes Go binaries and Docker images
       # NOTE: The configuration file for 'goreleaser' is '.goreleaser.yml'
