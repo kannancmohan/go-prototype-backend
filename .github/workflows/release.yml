@@ -69,7 +69,6 @@ jobs:
             @semantic-release/changelog
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          # CONFIG_PATH: ".github/config/.releaserc.json"
 
       # Builds and publishes Go binaries and Docker images
       # NOTE: The configuration file for 'goreleaser' is '.goreleaser.yml'
