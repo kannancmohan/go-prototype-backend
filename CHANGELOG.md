@@ -1,3 +1,10 @@
+# [0.9.0](https://github.com/kannancmohan/go-prototype-backend/compare/v0.8.0...v0.9.0) (2025-04-03)
+
+
+### Features
+
+* update github release ([75180b2](https://github.com/kannancmohan/go-prototype-backend/commit/75180b244b526ad44b5d65679e56ac456ea1f7b8))
+
 # [0.8.0](https://github.com/kannancmohan/go-prototype-backend/compare/v0.7.0...v0.8.0) (2025-04-03)
 
 
