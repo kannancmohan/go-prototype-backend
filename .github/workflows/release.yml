@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - 'main'
-      - 'update-github-workflow'
     tags:
       - 'v*'
 
@@ -62,7 +61,7 @@ jobs:
             @semantic-release/git
             @semantic-release/exec
             @semantic-release/changelog
-          semantic_version: 24.2.3
+          # semantic_version: 24.2.3
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           CONFIG_PATH: ".github/config/.releaserc.yml"
