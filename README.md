@@ -164,3 +164,84 @@ Ensure that the outgoing call request is created using context
 ```
 http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://localhost:%d/", t.externalPort), nil)
 ```
+
+## GitHub Release Workflow
+
+This project uses GitHub Actions and GoReleaser to automate the release process, including building and publishing Docker images to GitHub Container Registry (GHCR).
+
+### Prerequisites
+
+1. **GitHub Personal Access Token (PAT)**:
+   - Go to GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
+   - Click "Generate new token" and select the following scopes:
+     - `repo` (Full control of repositories)
+     - `read:packages` (to download packages)
+     - `write:packages` (to publish packages)
+     - `delete:packages` (optional,to delete packages)
+     - `workflow` (optional, for workflow interactions)
+   - Copy the generated token
+
+2. **Add PAT to Repository Secrets**:
+   - Go to your repository → Settings → Secrets and variables → Actions
+   - Click "New Environment' to create a new environment called 'Release'. (if environment not already present)
+   - Click "Add environment secret"
+   - Name: `GO_GITHUB_TOKEN`
+   - Value: Paste your PAT token
+   - Click "Add secret"
+
+3. **Configure GitHub Repository Settings**:
+   - Go to repository → Settings → Actions → General
+   - Under "Workflow permissions," select "Read and write permissions"
+   - (Optional) Enable "Allow GitHub Actions to create and approve pull requests"
+   - Save changes
+
+### Using the Release Workflow
+
+1. **Creating a Release**:
+   - **Option 1: Using Tags**
+     - Create and push a tag to trigger the workflow:
+     ```bash
+     git tag v1.0.0  # Use semantic versioning
+     git push origin v1.0.0
+     ```
+   
+   - **Option 2: Using Semantic Commit Messages**
+     - Make commits with appropriate semantic-release prefixes:
+       - `feat:` for new features (bumps minor version)
+       - `fix:` for bug fixes (bumps patch version)
+       - `BREAKING CHANGE:` in commit body for breaking changes (bumps major version)
+     - Push to the main branch to trigger the workflow:
+     ```bash
+     git push origin main
+     ```
+     - Semantic-release will analyze commit messages and automatically create a new release when appropriate
+
+2. **Testing Locally**:
+   - To test the release process locally without publishing:
+   ```bash
+   # Set environment variable for local testing
+   export GITHUB_REPOSITORY="your-username/go-prototype-backend"
+   
+   # If you need to test Docker publishing (though not recommended for local testing)
+   # export GO_GITHUB_TOKEN=your_github_token
+   
+   # Run GoReleaser in snapshot mode
+   goreleaser release --snapshot --clean --config .github/config/.goreleaser.yml
+   ```
+
+3. **Verifying Configuration**:
+   ```bash
+   # Check if GoReleaser config is valid
+   goreleaser check --config .github/config/.goreleaser.yml
+   ```
+
+### Docker Images
+
+After a successful release, Docker images will be available at:
+- `ghcr.io/your-username/go-prototype-backend:VERSION`
+- `ghcr.io/your-username/go-prototype-backend:latest`
+
+
+With both AMD64 and ARM64 architectures supported.
+
+Also, check https://github.com/your-username?tab=packages
