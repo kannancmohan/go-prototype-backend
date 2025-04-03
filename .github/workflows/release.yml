@@ -52,7 +52,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       # Determines the next semantic version number and creates a release
-      # NOTE: The configuration file for 'semantic-release' is '.releaserc.yml'
+      # NOTE: The configuration file for 'semantic-release' is '.releaserc.json'
       - name: Semantic Release
         id: semantic-release
         uses: cycjimmy/semantic-release-action@v4
@@ -64,7 +64,7 @@ jobs:
           # semantic_version: 24.2.3
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          CONFIG_PATH: ".github/config/.releaserc.yml"
+          CONFIG_PATH: ".github/config/.releaserc.json"
 
       # Builds and publishes Go binaries and Docker images
       # NOTE: The configuration file for 'goreleaser' is '.goreleaser.yml'
