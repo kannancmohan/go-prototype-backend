@@ -1,3 +1,10 @@
+# [0.8.0](https://github.com/kannancmohan/go-prototype-backend/compare/v0.7.0...v0.8.0) (2025-04-03)
+
+
+### Features
+
+* move goreleaser and semver config ([9336b95](https://github.com/kannancmohan/go-prototype-backend/commit/9336b95a70b41093b1cc0d0e12799c82341c90d6))
+
 # [0.7.0](https://github.com/kannancmohan/go-prototype-backend/compare/v0.6.0...v0.7.0) (2025-04-03)
 
 
