@@ -51,12 +51,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Copy configuration files to the expected locations
-      - name: Copy config files
-        run: |
-          cp .github/config/.releaserc.json .releaserc.json
-          echo "Copied configuration files to root directory"
-
       # Determines the next semantic version number and creates a release
       # NOTE: The configuration file for 'semantic-release' is '.releaserc.json'
       - name: Semantic Release
@@ -71,7 +65,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
       # Builds and publishes Go binaries and Docker images
-      # NOTE: The configuration file for 'goreleaser' is '.goreleaser.yml'
+      # NOTE: The configuration file for 'goreleaser' is '.github/config/.goreleaser.yml'
       - name: Run GoReleaser
         # Only run GoReleaser if semantic-release created a new release
         if: ${{ steps.semantic-release.outputs.new_release_published == 'true' }}
