@@ -35,6 +35,49 @@ OOTB features
 * delve - [optional] for debugging go projects
 * air - [optional] for hot/live reloading go projects
 
+### Development Environment Setup (using Nix Flakes)
+
+This project uses Nix flakes to provide a consistent development environment with all necessary tools and dependencies.
+
+**Prerequisites:**
+
+*   **Nix Installation**: Ensure you have Nix installed on your system. Follow the instructions on the [official Nix website](https://nixos.org/download.html).
+*   **Flakes Enabled (Required)**: Nix flakes are an experimental feature and must be enabled. Add or uncomment the following line in your Nix configuration file (usually `/etc/nix/nix.conf` for multi-user installs or `~/.config/nix/nix.conf` for single-user installs):
+    ```
+    experimental-features = nix-command flakes
+    ```
+    You may need to restart the Nix daemon after editing the configuration
+    
+    for mac `sudo launchctl kickstart -k system/org.nixos.nix-daemon`
+
+    for linux `sudo systemctl restart nix-daemon` or similar
+
+**Starting the Environment:**
+
+1.  **Navigate to Project Directory**: Open your terminal and change to the root directory of this project.
+2.  **Activate Environment**: Run the following command:
+    ```bash
+    nix develop
+    # or
+    # nix shell
+    ```
+    This command will build or download the environment defined in `flake.nix` and drop you into a new shell session with all the specified tools (Go, delve, air, linters, etc.) available in your `PATH`.
+
+    *(Optional) Using Direnv:* If you have `direnv` installed and hooked into your shell, you can automate the environment activation. The included `.envrc` file contains `use flake`. Simply run `direnv allow .` once in the project directory. Afterwards, `direnv` will automatically load the Nix environment whenever you `cd` into the project directory.
+
+**Updating Dependencies (flake.lock):**
+
+The `flake.lock` file pins the exact versions of all dependencies (like `nixpkgs`). To update these dependencies to their latest compatible versions based on the inputs defined in `flake.nix`:
+
+1.  Run the following command in the project root:
+    ```bash
+    nix flake update
+    ```
+2.  This command updates the `flake.lock` file.
+3.  Commit the updated `flake.lock` file to your version control system (e.g., Git) to ensure all collaborators use the same updated dependencies.
+
+Update the lock file periodically or when you need newer versions of the tools or libraries provided by the flake inputs.
+
 ### Project Initial setup
 
 #### Init the module 
