@@ -48,7 +48,6 @@
 
         # Define the shell hook
         shellHook = ''
-          ## Add environment variables ##
 
           ### direnv ###
           eval "$(direnv hook bash)"
@@ -58,12 +57,7 @@
               direnv allow .
           fi
 
-          ### Conditional set CGO_LDFLAGS ###
-          if ${builtins.toString isMacOS}; then
-              export CGO_CFLAGS="-mmacosx-version-min=13.0"
-              export CGO_LDFLAGS="-mmacosx-version-min=13.0"
-          fi
-
+          ### remote docker configuration ###
           if [ "${remoteDockerHost}" != "" ]; then
               if [[ "${remoteDockerHost}" == ssh://* ]]; then
                   echo "Using remote Docker and setting ssh for the same"
@@ -81,15 +75,18 @@
                   fi
 
                   ## Start SSH agent if not already running
-                  if [ -z "$SSH_AGENT_PID" ]; then
+                  if [ -z "$SSH_AUTH_SOCK" ]; then
+                      echo "No existing SSH agent detected. Starting a new one..."
                       eval $(ssh-agent -s)
                       echo "SSH agent started with PID $SSH_AGENT_PID"
-                  fi
-                  ## Add host ssh keys
-                  if ${builtins.toString isMacOS}; then
-                      ssh-add --apple-use-keychain ~/.ssh/id_ed25519
+                      # Attempt to add key only if we started a new agent
+                      if [ "$IS_MACOS" = "true" ]; then
+                          ssh-add --apple-use-keychain ~/.ssh/id_ed25519
+                      else
+                          ssh-add ~/.ssh/id_ed25519
+                      fi
                   else
-                      ssh-add ~/.ssh/id_ed25519
+                      echo "Using existing SSH agent ($SSH_AUTH_SOCK)"
                   fi
 
                   ## Two options to connect to remote docker(both requires ssh access rights to remote docker)
@@ -120,13 +117,20 @@
           if ! docker info > /dev/null 2>&1; then
               echo "Docker is not running. Please check the Docker daemon."
           fi
+          ### Use IS_MACOS env var set by mkShell ###
+          if [ "$IS_MACOS" = "true" ]; then
+              export CGO_CFLAGS="-mmacosx-version-min=13.0"
+              export CGO_LDFLAGS="-mmacosx-version-min=13.0"
+          fi
         '';
 
       in
       {
         devShells.default = pkgs.mkShellNoCC {
           inherit packages shellHook;
+          env = { IS_MACOS = builtins.toString isMacOS; }; # Pass isMacOS as env var
         };
+        packages.default = pkgs.hello; # Add a default package
       }
     );
 }
