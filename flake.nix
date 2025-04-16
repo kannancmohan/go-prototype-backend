@@ -126,7 +126,7 @@
 
       in
       {
-        devShells.default = pkgs.mkShellNoCC {
+        devShells.default = pkgs.mkShell {
           inherit packages shellHook;
           env = { IS_MACOS = builtins.toString isMacOS; }; # Pass isMacOS as env var
         };
