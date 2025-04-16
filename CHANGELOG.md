@@ -1,3 +1,13 @@
+# [0.10.0](https://github.com/kannancmohan/go-prototype-backend/compare/v0.9.0...v0.10.0) (2025-04-16)
+
+
+### Features
+
+* update nix to latest nix-flakes ([3953ea3](https://github.com/kannancmohan/go-prototype-backend/commit/3953ea33592bb43a8eb6057df29851cd9fea12ea))
+* update nix to latest nix-flakes ([4c3c690](https://github.com/kannancmohan/go-prototype-backend/commit/4c3c69087cf10d81abf17383439a3b5bf81ee4f7))
+* update nix to latest nix-flakes ([50324bd](https://github.com/kannancmohan/go-prototype-backend/commit/50324bd5e14689256a8382acf5c0b5ef5213ea2e))
+* update nix to latest nix-flakes ([8ebe165](https://github.com/kannancmohan/go-prototype-backend/commit/8ebe165ade443608efc90967e140de29eaf62f08))
+
 # [0.9.0](https://github.com/kannancmohan/go-prototype-backend/compare/v0.8.0...v0.9.0) (2025-04-03)
 
 
