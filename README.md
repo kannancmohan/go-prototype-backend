@@ -14,14 +14,25 @@ OOTB features
 | prometheus                                 |   1.21.0     |  github.com/prometheus/client_golang                |
 | opentelemetry                              |   1.34.0     |  go.opentelemetry.io/otel                           |
 
-## Linting & Configuration Tools (local)
-| Item                             | version    | desc                                                |
-| :------------------------------- | :--------: | -------------------------------------------------------------------------: |
-| direnv                           |   2.35.0   |  automatically loads/unloads environment variables based on the directory  |
-| lefthook                         |   1.8.1    |  git hooks manager to automate code quality checks, tests etc  			 |
-| golangci-lint                    |   1.62.2   |  go linter that helps detect and fix coding issues  			 			 |
-| commitlint                       |   19.5.0   |  tool to enforce consistent commit message format based on custom rules  	 |
-| gitleaks                         |   8.21.2   |  tool to detects hardcoded secrets in codebases to prevent accidental leaks|
+## Linting & Configuration Tools
+| Item                      | config file          | version    | desc                                                |
+| :-------------------------|:---------------------| :--------: | -------------------------------------------------------------------------: |
+| direnv                    | .envrc               |   2.35.0   |  automatically loads/unloads environment variables based on the directory  |
+| golangci-lint             | .golangci.yml        |   1.62.2   |  go linter that helps detect and fix coding issues  			 			      |
+
+## Git hook tools
+| Item                      | config file          | version    | desc                                                |
+| :-------------------------|:---------------------| :--------: | -------------------------------------------------------------------------: |
+| lefthook                  | lefthook.yml         |   1.8.1    |  git hooks manager to automate code quality checks, tests etc  			   |
+| commitlint                | commitlint.config.js |   19.5.0   |  tool to enforce consistent commit message format based on custom rules  	|
+| gitleaks                  |                      |   8.21.2   |  tool to detects hardcoded secrets in codebases to prevent accidental leaks|
+
+## Release/Publish Tools (github)
+| Item                      | config file          | version    | desc                                                |
+| :-------------------------|:---------------------| :--------: | -------------------------------------------------------------------------: |
+| semantic-release          | .releaserc.json      |   v4       |  tool to determines the next release version, generates release notes & changelog and publishes a release tag|
+| goreleaser                | .goreleaser.yml      |   v6       |  generates tar file and publishes Docker images|
+
 
 ## Project Structure
 ```
